@@ -1,0 +1,60 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.ProtoBuf", "Postal.ProtoBuf\Postal.ProtoBuf.csproj", "{895C0BF0-8FA0-4ACE-9982-47C959B8660F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{8CA99FC0-4465-4BCB-9B3F-6DC86495D300}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.ProtoBuf.NuGetPackage", "Postal.ProtoBuf.NuGetPackage\Postal.ProtoBuf.NuGetPackage.csproj", "{151C48B3-CBA0-4DF9-90AA-9D14661AB977}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.Test.Client", "Postal.Test.Client\Postal.Test.Client.csproj", "{2FF493DF-308A-4EB7-936B-37F3FD2FDC5B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A1FECB63-477D-4892-9ED5-0B26628143EE} = {A1FECB63-477D-4892-9ED5-0B26628143EE}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.Test.Server", "Postal.Test.Server\Postal.Test.Server.csproj", "{CF4836FC-9A01-41D6-A6BE-07C4901FD38A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A1FECB63-477D-4892-9ED5-0B26628143EE} = {A1FECB63-477D-4892-9ED5-0B26628143EE}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.Test", "Postal.Test\Postal.Test.csproj", "{A1FECB63-477D-4892-9ED5-0B26628143EE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{151C48B3-CBA0-4DF9-90AA-9D14661AB977} = {151C48B3-CBA0-4DF9-90AA-9D14661AB977}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{895C0BF0-8FA0-4ACE-9982-47C959B8660F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{895C0BF0-8FA0-4ACE-9982-47C959B8660F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{895C0BF0-8FA0-4ACE-9982-47C959B8660F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{895C0BF0-8FA0-4ACE-9982-47C959B8660F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{151C48B3-CBA0-4DF9-90AA-9D14661AB977}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{151C48B3-CBA0-4DF9-90AA-9D14661AB977}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{151C48B3-CBA0-4DF9-90AA-9D14661AB977}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{151C48B3-CBA0-4DF9-90AA-9D14661AB977}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2FF493DF-308A-4EB7-936B-37F3FD2FDC5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2FF493DF-308A-4EB7-936B-37F3FD2FDC5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2FF493DF-308A-4EB7-936B-37F3FD2FDC5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2FF493DF-308A-4EB7-936B-37F3FD2FDC5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF4836FC-9A01-41D6-A6BE-07C4901FD38A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF4836FC-9A01-41D6-A6BE-07C4901FD38A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF4836FC-9A01-41D6-A6BE-07C4901FD38A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF4836FC-9A01-41D6-A6BE-07C4901FD38A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1FECB63-477D-4892-9ED5-0B26628143EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1FECB63-477D-4892-9ED5-0B26628143EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1FECB63-477D-4892-9ED5-0B26628143EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1FECB63-477D-4892-9ED5-0B26628143EE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

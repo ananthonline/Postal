@@ -1,0 +1,22 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <CoreCompileDependsOn>$(CoreCompileDependsOn);Postal</CoreCompileDependsOn>
+  </PropertyGroup>
+  <ItemGroup>
+    <AvailableItemName Include="Postal"/>
+  </ItemGroup>
+  <UsingTask TaskName="Postal.ProtoBuf.Postal" AssemblyFile="..\lib\Net40\Postal.ProtoBuf.dll" />
+  <Target Name="Postal" Inputs="@(Postal)" Outputs="@(Postal->'$(IntermediateOutputPath)%(FileName).postal.cs')">
+    <Postal InputFiles="@(Postal)" OutputFiles="@(Postal->'$(IntermediateOutputPath)%(FileName).postal.cs')">
+      <Output TaskParameter="OutputFiles" ItemName="PostalWrapper"/>
+    </Postal>
+  </Target>
+  <ItemGroup>
+    <Compile Include="@(Postal->'$(IntermediateOutputPath)%(FileName).postal.cs')">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Compile>
+    <Content Include="@(Postal)">
+      <CopyToOutputDirectory>%(CopyToOutputDirectory)</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

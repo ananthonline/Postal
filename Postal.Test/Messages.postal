@@ -1,0 +1,29 @@
+﻿namespace Postal.Test;
+
+message SetStrings
+{
+	request
+	{
+		mandatory string[] Names;
+		mandatory string[] Values;
+	}
+	response
+	{
+		mandatory bool Result;
+		string Message;
+	}
+}
+
+message GetStrings
+{
+	request
+	{
+		mandatory string[] Names;
+	}
+	response
+	{
+		mandatory bool Result;
+		string Message;
+		mandatory string[] Values;
+	}
+}
