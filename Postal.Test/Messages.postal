@@ -1,5 +1,13 @@
 ﻿namespace Postal.Test;
 
+enum Result
+{
+	UnknownError = 0;
+	Exception;
+	CouldNotFindKey;
+	Success;
+}
+
 message SetStrings
 {
 	request
@@ -9,7 +17,7 @@ message SetStrings
 	}
 	response
 	{
-		mandatory bool Result;
+		mandatory Result Result;
 		string Message;
 	}
 }
@@ -22,7 +30,7 @@ message GetStrings
 	}
 	response
 	{
-		mandatory bool Result;
+		mandatory Result Result;
 		string Message;
 		mandatory string[] Values;
 	}

@@ -6,8 +6,11 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 
+using ProtoBuf;
+
 using Microsoft.Build.Framework;
 using Microsoft.CSharp;
+using System.Text.RegularExpressions;
 
 namespace Postal.ProtoBuf
 {
@@ -20,6 +23,8 @@ namespace Postal.ProtoBuf
 
         [Output]
         public ITaskItem[] OutputFiles { get; set; }
+
+        public string OutputDir { get; set; }
 
         private const string MetadataLink = "Link";
         private const string MetadataCopyToOutputDirectory = "CopyToOutputDirectory";
@@ -44,18 +49,33 @@ namespace Postal.ProtoBuf
                 var copy = InputFiles[i].GetMetadata(MetadataCopyToOutputDirectory);
                 var copyToOutputDirectory = !string.IsNullOrEmpty(copy) || (copy == "PreserveNewest") || (copy == "Always");
                 var fullPath = InputFiles[i].GetMetadata(MetadataFullPath);
+                OutputDir = Path.GetDirectoryName(OutputFiles[i].ItemSpec);
 
                 var codeUnit = GenerateCodeDOM(fullPath, File.ReadAllText(InputFiles[i].ItemSpec));
 
                 File.WriteAllText(OutputFiles[i].ItemSpec, GenerateCSharpCode(codeUnit));
+                var protoPath = Path.Combine(Path.GetDirectoryName(OutputFiles[i].ItemSpec), Path.GetFileNameWithoutExtension(OutputFiles[i].ItemSpec) + ".proto");
+                File.WriteAllText(protoPath, GenerateProtoFile(OutputFiles[i].ItemSpec, codeUnit));
+
+                BuildEngine.LogMessageEvent(new BuildMessageEventArgs(string.Format("OutputDir is: {0}", OutputDir), "Postal", "Postal.ProtoBuf", MessageImportance.High));
             }
 
             return true;
         }
 
-        public static string GenerateCSharpCode(CodeCompileUnit compileunit)
+        private CodeTypeDeclaration FindTypeEndingWith(CodeTypeDeclarationCollection collection, string endsWith)
+        {
+            for (int i = 0; i < collection.Count; i++)
+                if (collection[i].Name.EndsWith(endsWith))
+                    return collection[i];
+            return null;
+        }
+
+        public string GenerateCSharpCode(CodeCompileUnit compileunit)
         {
             var provider = new CSharpCodeProvider();
+
+            var containerType = FindTypeEndingWith(compileunit.Namespaces[0].Types, "_MessagesContainer");
 
             var sb = new StringBuilder();
             using (var sw = new StringWriter(sb))
@@ -63,16 +83,60 @@ namespace Postal.ProtoBuf
                 provider.GenerateCodeFromCompileUnit(compileunit, tw,
                     new CodeGeneratorOptions());
 
-            return sb.ToString();
+            var result = sb.ToString();
+
+            return result;
         }
-        public static CodeCompileUnit GenerateCodeDOM(string filename, string messageFileContents)
+
+        private static readonly MethodInfo GetProtoMethod = typeof(Serializer).GetMethod("GetProto");
+        private static readonly Regex RemoveMessageContainer = new Regex(@"message .+_MessagesContainer[^}]+}");
+
+        public string GenerateProtoFile(string sourceFilename, CodeCompileUnit compileUnit)
+        {
+            var provider = new CSharpCodeProvider();
+            var sourceCode = File.ReadAllText(sourceFilename);
+
+            var parameters = new CompilerParameters
+            {
+                GenerateExecutable = false,
+                ReferencedAssemblies = { "System.Core.dll", "System.Xml.dll", Path.Combine(OutputDir.Replace("obj", "bin"), "protobuf-net.dll") },
+                OutputAssembly = string.Format("{0}\\{1}.dll", OutputDir.Replace("obj", "bin"), Guid.NewGuid().ToString())
+            };
+            var results = provider.CompileAssemblyFromSource(parameters, sourceCode);
+            var assembly = results.CompiledAssembly; // Loads this assembly into our namespace
+
+            var type = (from t in assembly.GetTypes()
+                        where t.IsDefined(typeof(ProtoContractAttribute), false) && t.Name.EndsWith("_MessagesContainer")
+                        select t).FirstOrDefault();
+            if (type == null)
+                return string.Empty;
+
+            var method = GetProtoMethod.MakeGenericMethod(type);
+            if (method == null)
+                return "method was null";
+
+            var proto = (string)method.Invoke(null, null);
+            proto = RemoveMessageContainer.Replace(proto, "");
+
+            return proto;
+        }
+
+        private readonly CSharpCodeProvider cs = new CSharpCodeProvider();
+
+        private string getFormalParamName(MessageParser.FieldDefinition field)
+        {
+            var name = string.Format("{0}{1}", field.Name.First().ToString().ToLower(), field.Name.Substring(1, field.Name.Length - 1));
+            return cs.CreateEscapedIdentifier(name);
+        }
+
+        public CodeCompileUnit GenerateCodeDOM(string filename, string messageFileContents)
         {
 
             var parsed = MessageParser.ParseText(messageFileContents);
             var className = Path.GetFileNameWithoutExtension(filename);
 
             var codeUnit = new CodeCompileUnit();
-            var ns = new CodeNamespace(parsed.Item1);
+            var ns = new CodeNamespace(parsed.Namespace);
             codeUnit.Namespaces.Add(ns);
 
             ns.Imports.Add(new CodeNamespaceImport("System"));
@@ -94,15 +158,24 @@ namespace Postal.ProtoBuf
             };
             ns.Types.Add(messagesType);
 
+            var messagesContainerType = new CodeTypeDeclaration(string.Format("{0}_MessagesContainer", messagesType.Name))
+            {
+                TypeAttributes = TypeAttributes.Public,
+                CustomAttributes = { new CodeAttributeDeclaration("ProtoContract") }
+            };
+            ns.Types.Add(messagesContainerType);
+
             messagesType.Members.Add(new CodeSnippetTypeMember("public delegate TResponse ProcessRequestDelegate<TRequest, TResponse>(TRequest request) where TRequest : IRequest where TResponse : IResponse;"));
 
             messagesType.Members.Add(new CodeSnippetTypeMember(string.Format("private readonly static Dictionary<int, Type> _messageRequestTypes = new Dictionary<int, Type>(){{ {0} }};",
-                string.Join(",\n", from message in parsed.Item2
-                                   select string.Format("{{ {0}.{0}Tag, typeof({0}.Request) }}", message.Name)))));
+                string.Join(",\n", from message in parsed.PostalTypes
+                                   where message is MessageParser.MessageDefinition
+                                   select string.Format("{{ {0}.{0}Tag, typeof({0}.Request) }}", (message as MessageParser.MessageDefinition).Name)))));
 
             messagesType.Members.Add(new CodeSnippetTypeMember(string.Format("private readonly static Dictionary<int, Type> _messageResponseTypes = new Dictionary<int, Type>(){{ {0} }};",
-                string.Join(",\n", from message in parsed.Item2
-                                   select string.Format("{{ {0}.{0}Tag, typeof({0}.Response) }}", message.Name)))));
+                string.Join(",\n", from message in parsed.PostalTypes
+                                   where message is MessageParser.MessageDefinition
+                                   select string.Format("{{ {0}.{0}Tag, typeof({0}.Response) }}", (message as MessageParser.MessageDefinition).Name)))));
 
             messagesType.Members.Add(new CodeSnippetTypeMember(@"
 private static void Serialize<T>(Stream stream, T request) where T: IRequest
@@ -157,20 +230,41 @@ public static void ProcessRequest(this Stream stream)
             messagesType.Members.Add(responseInterfaceType);
 
             int messageTag = 1001;
-
-            foreach (var message in parsed.Item2)
+            int dummyFieldsTag = 1;
+            foreach (var type in parsed.PostalTypes)
             {
-                var messageType = new CodeTypeDeclaration(message.Name)
+                var enumDef = type as MessageParser.EnumDefinition;
+                if (enumDef != null)
                 {
-                    Attributes = MemberAttributes.Final,
-                    TypeAttributes = TypeAttributes.Public
-                };
-                messagesType.Members.Add(messageType);
+                    var enumType = new CodeTypeDeclaration(enumDef.Name)
+                    {
+                        IsEnum = true
+                    };
+                    foreach (var enumValue in enumDef.Values)
+                    {
+                        var field = new CodeMemberField(enumDef.Name, enumValue.Item1);
+                        if (enumValue.Item2.HasValue)
+                            field.InitExpression = new CodePrimitiveExpression(enumValue.Item2.Value);
+                        enumType.Members.Add(field);
+                    }
 
-                messageType.Members.Add(new CodeSnippetTypeMember(string.Format("public const int {0}Tag = {1};", messageType.Name, messageTag++)));
-                messageType.Members.Add(new CodeSnippetTypeMember(@"public static event ProcessRequestDelegate<Request, Response> MessageReceived;"));
+                    ns.Types.Add(enumType);
+                }
 
-                messageType.Members.Add(new CodeSnippetTypeMember(string.Format(@"
+                var messageDef = type as MessageParser.MessageDefinition;
+                if (messageDef != null)
+                {
+                    var messageType = new CodeTypeDeclaration(messageDef.Name)
+                    {
+                        Attributes = MemberAttributes.Final,
+                        TypeAttributes = TypeAttributes.Public
+                    };
+                    messagesType.Members.Add(messageType);
+
+                    messageType.Members.Add(new CodeSnippetTypeMember(string.Format("public const int {0}Tag = {1};", messageType.Name, messageTag++)));
+                    messageType.Members.Add(new CodeSnippetTypeMember(@"public static event ProcessRequestDelegate<Request, Response> MessageReceived;"));
+
+                    messageType.Members.Add(new CodeSnippetTypeMember(string.Format(@"
 public static Task<{0}.Response> SendAsync({1})
 {{
     return Task.Factory.StartNew(() =>
@@ -181,14 +275,14 @@ public static Task<{0}.Response> SendAsync({1})
         }});
         return Deserialize<{0}.Response>(stream);
     }});
-}}", messageType.Name, string.Join(", ", new[] { "Stream stream" }.Concat(from field in message.Request.Fields
-                                         let paramName = string.Format("{0}{1}", field.Name.First().ToString().ToLower(), field.Name.Substring(1, field.Name.Length - 1))
-                                        select string.Format("{0} {1}", field.Type, paramName))),
-                      string.Join(", \n", from field in message.Request.Fields
-                                          let paramName = string.Format("{0}{1}", field.Name.First().ToString().ToLower(), field.Name.Substring(1, field.Name.Length - 1))
-                                          select string.Format("{0} = {1}", field.Name, paramName)))));
+}}", messageType.Name, string.Join(", ", new[] { "Stream stream" }.Concat(from field in messageDef.Request.Fields
+                                                                          let paramName = getFormalParamName(field)
+                                                                          select string.Format("{0} {1}", field.Type, paramName))),
+                          string.Join(", \n", from field in messageDef.Request.Fields
+                                              let paramName = getFormalParamName(field)
+                                              select string.Format("{0} = {1}", field.Name, paramName)))));
 
-                messageType.Members.Add(new CodeSnippetTypeMember(string.Format(@"
+                    messageType.Members.Add(new CodeSnippetTypeMember(string.Format(@"
 public static {0}.Response Send({1})
 {{
     Serialize(stream, new {0}.Request
@@ -196,52 +290,78 @@ public static {0}.Response Send({1})
         {2}
     }});
     return Deserialize<{0}.Response>(stream);
-}}", messageType.Name, string.Join(", ", new[] { "Stream stream" }.Concat(from field in message.Request.Fields
-                                                                          let paramName = string.Format("{0}{1}", field.Name.First().ToString().ToLower(), field.Name.Substring(1, field.Name.Length - 1))
+}}", messageType.Name, string.Join(", ", new[] { "Stream stream" }.Concat(from field in messageDef.Request.Fields
+                                                                          let paramName = getFormalParamName(field)
                                                                           select string.Format("{0} {1}", field.Type, paramName))),
-                      string.Join(", \n", from field in message.Request.Fields
-                                          let paramName = string.Format("{0}{1}", field.Name.First().ToString().ToLower(), field.Name.Substring(1, field.Name.Length - 1))
-                                          select string.Format("{0} = {1}", field.Name, paramName)))));
+                          string.Join(", \n", from field in messageDef.Request.Fields
+                                              let paramName = getFormalParamName(field)
+                                              select string.Format("{0} = {1}", field.Name, paramName)))));
 
-                if (message.Request != null)
-                {
-                    var messageRequestType = new CodeTypeDeclaration("Request")
+                    CodeTypeDeclaration messageRequestType = null;
+                    if (messageDef.Request != null)
                     {
-                        Attributes = MemberAttributes.Final,
-                        TypeAttributes = TypeAttributes.Public,
-                        BaseTypes = { new CodeTypeReference("IRequest") },
-                        CustomAttributes = { new CodeAttributeDeclaration("ProtoContract") }
-                    };
-                    messageType.Members.Add(messageRequestType);
-                    messageRequestType.Members.Add(new CodeSnippetTypeMember(string.Format("int IRequest.Tag {{ get {{ return {0}Tag; }} }}", messageType.Name)));
-                    messageRequestType.Members.Add(new CodeSnippetTypeMember(string.Format("object IRequest.InvokeReceived() {{ return {0}.MessageReceived(this); }}", messageType.Name)));
+                        messageRequestType = new CodeTypeDeclaration("Request")
+                        {
+                            Attributes = MemberAttributes.Final,
+                            TypeAttributes = TypeAttributes.Public,
+                            BaseTypes = { new CodeTypeReference("IRequest") },
+                            CustomAttributes = { new CodeAttributeDeclaration("ProtoContract", 
+                                                 new[] 
+                                                 { 
+                                                     new CodeAttributeArgument
+                                                     {
+                                                         Name = "Name",
+                                                         Value = new CodeSnippetExpression(string.Format("\"{0}{1}\"", messageType.Name, "Request"))
+                                                     }
+                                                 }) 
+                            }
+                        };
+                        messageType.Members.Add(messageRequestType);
+                        messageRequestType.Members.Add(new CodeSnippetTypeMember(string.Format("int IRequest.Tag {{ get {{ return {0}Tag; }} }}", messageType.Name)));
+                        messageRequestType.Members.Add(new CodeSnippetTypeMember(string.Format("object IRequest.InvokeReceived() {{ return {0}.MessageReceived(this); }}", messageType.Name)));
 
-                    int fieldTag = 1;
-                    foreach (var field in message.Request.Fields)
+                        int fieldTag = 1;
+                        foreach (var field in messageDef.Request.Fields)
+                        {
+                            var member = new CodeSnippetTypeMember(string.Format("[ProtoMember({2}, IsRequired = {3})] public {0} {1} {{ get; set; }}", field.Type, field.Name, fieldTag++, field.Mandatory.ToString().ToLowerInvariant()));
+                            messageRequestType.Members.Add(member);
+                        }
+
+                        messagesContainerType.Members.Add(new CodeSnippetTypeMember(string.Format("[ProtoMember({0})] public {1}.{2}.{3} {1}_{2}_{3} {{ get; set; }}", dummyFieldsTag++, messagesType.Name, messageType.Name, "Request")));
+                    }
+
+                    CodeTypeDeclaration messageResponseType = null;
+                    if (messageDef.Response != null)
                     {
-                        var member = new CodeSnippetTypeMember(string.Format("[ProtoMember({2}, IsRequired = {3})] public {0} {1} {{ get; set; }}", field.Type, field.Name, fieldTag++, field.Mandatory.ToString().ToLowerInvariant()));
-                        messageRequestType.Members.Add(member);
+                        messageResponseType = new CodeTypeDeclaration("Response")
+                        {
+                            Attributes = MemberAttributes.Final,
+                            TypeAttributes = TypeAttributes.Public,
+                            BaseTypes = { new CodeTypeReference("IResponse") },
+                            CustomAttributes = { new CodeAttributeDeclaration("ProtoContract", 
+                                                 new[]
+                                                 {
+                                                     new CodeAttributeArgument
+                                                     {
+                                                         Name = "Name",
+                                                         Value = new CodeSnippetExpression(string.Format("\"{0}{1}\"", messageType.Name, "Response"))
+                                                     }
+                                                 })
+                            }
+                        };
+                        messageType.Members.Add(messageResponseType);
+
+                        int fieldTag = 1;
+                        foreach (var field in messageDef.Response.Fields)
+                        {
+                            var member = new CodeSnippetTypeMember(string.Format("[ProtoMember({2}, IsRequired = {3})] public {0} {1} {{ get; set; }}", field.Type, field.Name, fieldTag++, field.Mandatory.ToString().ToLowerInvariant()));
+                            messageResponseType.Members.Add(member);
+                        }
+
+                        messagesContainerType.Members.Add(new CodeSnippetTypeMember(string.Format("[ProtoMember({0})] public {1}.{2}.{3} {1}_{2}_{3} {{ get; set; }}", dummyFieldsTag++, messagesType.Name, messageType.Name, "Response")));
                     }
                 }
-                if (message.Response != null)
-                {
-                    var messageResponseType = new CodeTypeDeclaration("Response")
-                    {
-                        Attributes = MemberAttributes.Final,
-                        TypeAttributes = TypeAttributes.Public,
-                        BaseTypes = { new CodeTypeReference("IResponse") },
-                        CustomAttributes = { new CodeAttributeDeclaration("ProtoContract") }
-                    };
-                    messageType.Members.Add(messageResponseType);
-
-                    int fieldTag = 1;
-                    foreach (var field in message.Response.Fields)
-                    {
-                        var member = new CodeSnippetTypeMember(string.Format("[ProtoMember({2}, IsRequired = {3})] public {0} {1} {{ get; set; }}", field.Type, field.Name, fieldTag++, field.Mandatory.ToString().ToLowerInvariant()));
-                        messageResponseType.Members.Add(member);
-                    }
-                }
-            }
+            } // foreach type
 
             return codeUnit;
         }

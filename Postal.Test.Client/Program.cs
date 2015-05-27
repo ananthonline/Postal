@@ -54,7 +54,7 @@ set <name>:<value>[,<name>:<value>,<name>:<value>,...]⏎ will store or overwrit
                             case Command.get:
                                 {
                                     var response = Messages.GetStrings.Send(clientPipe, names);
-                                    if (response.Result)
+                                    if (response.Result == Result.Success)
                                         Console.WriteLine("Values for keys: {0} are: {1}", string.Join(", ", names), string.Join(", ", response.Values));
                                     else
                                         Console.WriteLine("There was an error fetching values for one or more keys: {0}", response.Message);
@@ -64,7 +64,7 @@ set <name>:<value>[,<name>:<value>,<name>:<value>,...]⏎ will store or overwrit
                             case Command.set:
                                 {
                                     var response = Messages.SetStrings.Send(clientPipe, names, values);
-                                    if (response.Result)
+                                    if (response.Result == Result.Success)
                                         Console.WriteLine("Successfully set values for keys: {0}", string.Join(", ", names));
                                     else
                                         Console.WriteLine("There was an error setting values for keys: {0}, error was: {1}",

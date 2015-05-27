@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30723.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.ProtoBuf", "Postal.ProtoBuf\Postal.ProtoBuf.csproj", "{895C0BF0-8FA0-4ACE-9982-47C959B8660F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{8CA99FC0-4465-4BCB-9B3F-6DC86495D300}"
@@ -26,6 +28,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.Test", "Postal.Test\
 	ProjectSection(ProjectDependencies) = postProject
 		{151C48B3-CBA0-4DF9-90AA-9D14661AB977} = {151C48B3-CBA0-4DF9-90AA-9D14661AB977}
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.ProtoBuf.UnitTests", "Postal.ProtoBuf.UnitTests\Postal.ProtoBuf.UnitTests.csproj", "{A5D378A0-6605-4F28-8CB2-FCA71D11C10A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -53,6 +57,10 @@ Global
 		{A1FECB63-477D-4892-9ED5-0B26628143EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1FECB63-477D-4892-9ED5-0B26628143EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1FECB63-477D-4892-9ED5-0B26628143EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5D378A0-6605-4F28-8CB2-FCA71D11C10A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5D378A0-6605-4F28-8CB2-FCA71D11C10A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5D378A0-6605-4F28-8CB2-FCA71D11C10A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5D378A0-6605-4F28-8CB2-FCA71D11C10A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

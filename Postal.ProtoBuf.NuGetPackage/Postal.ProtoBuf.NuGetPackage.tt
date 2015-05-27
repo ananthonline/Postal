@@ -49,6 +49,7 @@ var description = extract("AssemblyDescription", assemblyInfo);
 			"exclude=\"..\\..\\" + packageId + "\\obj\\**\\*.cs\" />\n");
 	  #>
 	  <file src="lib\Net40\Sprache.dll" target="lib\Net40" />
+	  <file src="lib\Net40\protobuf-net.dll" target="lib\Net40" />
 	  <file src="build\**\*.*" target="build" />
 	  <file src="tools\**\*.*" target="tools" />
 	  <file src="content\**\*.*" target="content" exclude="content\Content.Readme.txt" />

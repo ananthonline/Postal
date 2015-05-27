@@ -63,12 +63,12 @@ namespace Postal.Test.Server
             }
             catch (Exception ex)
             {
-                response.Result = false;
+                response.Result = Result.Exception;
                 response.Message = ex.Message;
                 return response;
             }
 
-            response.Result = true;
+            response.Result = Result.Success;
             return response;
         }
 
@@ -78,7 +78,7 @@ namespace Postal.Test.Server
             var error = new StringBuilder();
             var response = new Messages.GetStrings.Response
             {
-                Result = true,
+                Result = Result.Success,
                 Values = new string[request.Names.Length]
             };
             try
@@ -87,7 +87,7 @@ namespace Postal.Test.Server
                 {
                     if (!_values.ContainsKey(request.Names[i]))
                     {
-                        response.Result = false; // We failed to do something
+                        response.Result = Result.CouldNotFindKey; // We failed to do something
                         error.AppendFormat("Could not find key: {0}\n", request.Names[i]);
                         Console.WriteLine("Could not find key: {0}\n", request.Names[i]);
                         continue;
@@ -99,11 +99,11 @@ namespace Postal.Test.Server
             }
             catch (Exception ex)
             {
-                response.Result = false;
+                response.Result = Result.Exception;
                 response.Message = ex.Message;
             }
 
-            if (!response.Result)
+            if (response.Result != Result.Success)
                 response.Message = error.ToString();
 
             return response;
