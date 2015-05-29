@@ -278,10 +278,17 @@ public static void ProcessRequest(this Stream stream)
                 {
                     var structType = new CodeTypeDeclaration(structDef.Name) 
                     {
-                        IsStruct = true
+                        IsStruct = true,
+                        IsPartial = true,
+                        CustomAttributes = { new CodeAttributeDeclaration("ProtoContract") }
                     };
+
+                    int fieldTag = 1;
                     foreach (var structField in structDef.Fields)
-                        structType.Members.Add(new CodeMemberField(structField.Type.ReplaceAll(builtInTypeReplacements), structField.Name));
+                        structType.Members.Add(new CodeMemberField(structField.Type.ReplaceAll(builtInTypeReplacements), structField.Name)
+                            {
+                                CustomAttributes = { new CodeAttributeDeclaration(string.Format("ProtoMember{0}", fieldTag++))  }
+                            });
 
                     ns.Types.Add(structType);
                     continue;
