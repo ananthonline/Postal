@@ -48,7 +48,6 @@ struct Test
         [TestCase]
         public void TestStructParser()
         {
-            var postal = new Postal();
             var def = MessageParser.ParseText(StructDef);
             var structType = (from type in def.PostalTypes
                               let s = type as MessageParser.StructDefinition

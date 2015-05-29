@@ -285,10 +285,13 @@ public static void ProcessRequest(this Stream stream)
 
                     int fieldTag = 1;
                     foreach (var structField in structDef.Fields)
+                    {
                         structType.Members.Add(new CodeMemberField(structField.Type.ReplaceAll(builtInTypeReplacements), structField.Name)
                             {
-                                CustomAttributes = { new CodeAttributeDeclaration(string.Format("ProtoMember{0}", fieldTag++))  }
+                                CustomAttributes = { new CodeAttributeDeclaration("ProtoMember", new CodeAttributeArgument(new CodeSnippetExpression(fieldTag.ToString()))) }
                             });
+                        fieldTag++;
+                    }
 
                     ns.Types.Add(structType);
                     continue;
