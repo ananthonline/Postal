@@ -62,6 +62,12 @@ namespace Postal.ProtoBuf
 
         }
 
+        public class StructDefinition: PostalTypeDefinition
+        {
+            public string Name;
+            public IEnumerable<FieldDefinition> Fields;
+        }
+
         public static readonly Parser<string> _identifierParser = Parse.Regex(@"\w\w+").Text().Token();
         public static readonly Parser<string> _typeParser = Parse.Regex(@"(\w+\.?(\[\])?)+").Text().Token();
         public static readonly Parser<string> _namespaceDefParser = from namespace_reserved in Parse.String("namespace").Text().Token()
@@ -97,6 +103,24 @@ namespace Postal.ProtoBuf
                                                                         Name = enum_name,
                                                                         Values = enum_values
                                                                     };
+        private static readonly Parser<FieldDefinition> _structFieldParser = from field_type in _typeParser
+                                                                             from field_name in _identifierParser
+                                                                             from semiColon in Parse.Char(';').Once().Text().Token()
+                                                                             select new FieldDefinition
+                                                                             {
+                                                                                 Name = field_name,
+                                                                                 Type = field_type
+                                                                             };
+        private static readonly Parser<PostalTypeDefinition> _structParser = from struct_reserved in Parse.String("struct").Text().Token()
+                                                                             from struct_name in _identifierParser
+                                                                             from struct_start in Parse.Char('{').Once().Text().Token()
+                                                                             from fields in _structFieldParser.Many()
+                                                                             from struct_end in Parse.Char('}').Once().Text().Token()
+                                                                             select new StructDefinition
+                                                                             {
+                                                                                 Name = struct_name,
+                                                                                 Fields = fields
+                                                                             };
         public static readonly Parser<RequestDefinition> _requestParser = from message_request in Parse.String("request").Text().Token()
                                                                 from message_start in Parse.Char('{').Once().Text().Token()
                                                                 from fields in _fieldParser.Many()
@@ -113,14 +137,17 @@ namespace Postal.ProtoBuf
                                                                from request in _requestParser.Optional()
                                                                from response in _responseParser.Optional()
                                                                from message_end in Parse.Char('}').Once().Text().Token()
-                                                               select new MessageDefinition 
+                                                               select new MessageDefinition
                                                                { 
                                                                    Name = message_name, 
                                                                    Request = request.IsDefined ? request.Get() : null,
                                                                    Response = response.IsDefined ? response.Get(): null
                                                                };
         public static Parser<PostalDefinition> _postalParser = from ns in _namespaceDefParser
-                                                               from types in _messageParser.Or(_enumParser).Many()
+                                                               from types in _messageParser
+                                                                            .Or(_enumParser)
+                                                                            .Or(_structParser)
+                                                                            .Many()
                                                                select new PostalDefinition
                                                                {
                                                                    Namespace = ns,

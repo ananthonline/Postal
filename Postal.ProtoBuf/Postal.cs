@@ -11,6 +11,7 @@ using ProtoBuf;
 using Microsoft.Build.Framework;
 using Microsoft.CSharp;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
 
 namespace Postal.ProtoBuf
 {
@@ -25,6 +26,25 @@ namespace Postal.ProtoBuf
         public ITaskItem[] OutputFiles { get; set; }
 
         public string OutputDir { get; set; }
+
+        private readonly Dictionary<string, string> builtInTypeReplacements = new Dictionary<string, string>
+        {
+            { "object", "Object" },
+            { "string", "String" },
+            { "bool", "Boolean" },
+            { "byte", "Byte" },
+            { "char", "Char" },
+            { "decimal", "Decimal" },
+            { "double", "Double" },
+            { "short", "Int16" },
+            { "int", "Int32" },
+            { "long", "Int64" },
+            { "sbyte", "SByte" },
+            { "float", "Single" },
+            { "ushort", "UInt16" },
+            { "uint", "UInt32" },
+            { "ulong", "UInt64" }
+        };
 
         private const string MetadataLink = "Link";
         private const string MetadataCopyToOutputDirectory = "CopyToOutputDirectory";
@@ -249,6 +269,22 @@ public static void ProcessRequest(this Stream stream)
                     }
 
                     ns.Types.Add(enumType);
+                    
+                    continue;
+                }
+
+                var structDef = type as MessageParser.StructDefinition;
+                if (structDef != null)
+                {
+                    var structType = new CodeTypeDeclaration(structDef.Name) 
+                    {
+                        IsStruct = true
+                    };
+                    foreach (var structField in structDef.Fields)
+                        structType.Members.Add(new CodeMemberField(structField.Type.ReplaceAll(builtInTypeReplacements), structField.Name));
+
+                    ns.Types.Add(structType);
+                    continue;
                 }
 
                 var messageDef = type as MessageParser.MessageDefinition;
