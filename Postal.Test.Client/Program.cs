@@ -15,6 +15,7 @@ set <name>:<value>[,<name>:<value>,<name>:<value>,...]⏎ will store or overwrit
 
         static readonly Regex _commandRegex = new Regex(@"(?<command>get|set)\s+((?<names>[^:^,]+)\s*((\:\s*(?<values>[^:^,]+))?(,\s*)?)+)+", RegexOptions.Compiled | RegexOptions.Singleline);
 
+        // All lowercase so we can parse strings to this enum
         enum Command
         {
             get,
@@ -43,36 +44,40 @@ set <name>:<value>[,<name>:<value>,<name>:<value>,...]⏎ will store or overwrit
                     Console.Write(">");
                     var input = Console.ReadLine();
                     var match = _commandRegex.Match(input);
-                    if (match.Success)
+                    
+                    if (!match.Success)
+                        continue;
+                    
+                    var command = (Command)Enum.Parse(typeof(Command), match.Groups["command"].Value);
+                    var names = (from Capture capture in match.Groups["names"].Captures select capture.Value).ToArray();
+                    var values = (from Capture capture in match.Groups["values"].Captures select capture.Value).ToArray();
+
+                    switch (command)
                     {
-                        var command = (Command)Enum.Parse(typeof(Command), match.Groups["command"].Value);
-                        var names = (from Capture capture in match.Groups["names"].Captures select capture.Value).ToArray();
-                        var values = (from Capture capture in match.Groups["values"].Captures select capture.Value).ToArray();
+                        case Command.get:
+                            {
+                                var response = clientPipe.MessagesGetStrings(names);
+                                if (response.Result == Result.Success)
+                                    Console.WriteLine("Values for keys: {0} are: {1}", string.Join(", ", names), string.Join(", ", response.Values));
+                                else
+                                    Console.WriteLine("There was an error fetching values for one or more keys: {0}", response.Message);
+                            }
+                            break;
 
-                        switch (command)
-                        {
-                            case Command.get:
-                                {
-                                    var response = Messages.GetStrings.Send(clientPipe, names);
-                                    if (response.Result == Result.Success)
-                                        Console.WriteLine("Values for keys: {0} are: {1}", string.Join(", ", names), string.Join(", ", response.Values));
-                                    else
-                                        Console.WriteLine("There was an error fetching values for one or more keys: {0}", response.Message);
-                                }
-                                break;
-
-                            case Command.set:
-                                {
-                                    var response = Messages.SetStrings.Send(clientPipe, names, values);
-                                    if (response.Result == Result.Success)
-                                        Console.WriteLine("Successfully set values for keys: {0}", string.Join(", ", names));
-                                    else
-                                        Console.WriteLine("There was an error setting values for keys: {0}, error was: {1}",
-                                            string.Join(", ", names),
-                                            response.Message);
-                                }
-                                break;
-                        }
+                        case Command.set:
+                            {
+                                var response = clientPipe.MessagesSetStrings(names, values);
+                                if (response.Result == Result.Success)
+                                    Console.WriteLine("Successfully set values for keys: {0}", string.Join(", ", names));
+                                else
+                                    Console.WriteLine("There was an error setting values for keys: {0}, error was: {1}",
+                                        string.Join(", ", names),
+                                        response.Message);
+                            }
+                            break;
+                        case Command.exit:
+                            exit = true;
+                            break;
                     }
                 }
             }

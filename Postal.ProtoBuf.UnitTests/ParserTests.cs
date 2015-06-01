@@ -44,7 +44,7 @@ struct Test
             Assert.AreEqual(enumType.Values.First(), "UnknownError");
             Assert.AreEqual(enumType.Values.Last(), "Success");
         }
-        
+
         [TestCase]
         public void TestStructParser()
         {
@@ -56,10 +56,10 @@ struct Test
             Assert.IsNotNull(structType);
             Assert.AreEqual(structType.Name, "Test");
             Assert.AreEqual(structType.Fields.Count(), 2);
-            
+
             Assert.AreEqual(structType.Fields.First().Name, "OneValue");
             Assert.AreEqual(structType.Fields.First().Type, "int");
-            
+
             Assert.AreEqual(structType.Fields.Last().Name, "ArrayOfValues");
             Assert.AreEqual(structType.Fields.Last().Type, "byte[]");
         }

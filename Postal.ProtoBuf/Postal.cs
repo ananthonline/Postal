@@ -288,7 +288,8 @@ public static void ProcessRequest(this Stream stream)
                     {
                         structType.Members.Add(new CodeMemberField(structField.Type.ReplaceAll(builtInTypeReplacements), structField.Name)
                             {
-                                CustomAttributes = { new CodeAttributeDeclaration("ProtoMember", new CodeAttributeArgument(new CodeSnippetExpression(fieldTag.ToString()))) }
+                                CustomAttributes = { new CodeAttributeDeclaration("ProtoMember", new CodeAttributeArgument(new CodeSnippetExpression(fieldTag.ToString()))) },
+                                Attributes = MemberAttributes.Public
                             });
                         fieldTag++;
                     }
@@ -310,8 +311,19 @@ public static void ProcessRequest(this Stream stream)
                     messageType.Members.Add(new CodeSnippetTypeMember(string.Format("public const int {0}Tag = {1};", messageType.Name, messageTag++)));
                     messageType.Members.Add(new CodeSnippetTypeMember(@"public static event ProcessRequestDelegate<Request, Response> MessageReceived;"));
 
-                    messageType.Members.Add(new CodeSnippetTypeMember(string.Format(@"
-public static Task<{0}.Response> SendAsync({1})
+                    messageType.Members.Add(new CodeSnippetTypeMember(string.Format(
+                        messageDef.Response == null ?
+@"public static Task SendAsync({1})
+{{
+    return Task.Factory.StartNew(() =>
+    {{
+        Serialize(stream, new {0}.Request
+        {{
+            {2}
+        }});
+    }});
+}}": 
+@"public static Task<{0}.Response> SendAsync({1})
 {{
     return Task.Factory.StartNew(() =>
     {{
@@ -327,9 +339,16 @@ public static Task<{0}.Response> SendAsync({1})
                           string.Join(", \n", from field in messageDef.Request.Fields
                                               let paramName = getFormalParamName(field)
                                               select string.Format("{0} = {1}", field.Name, paramName)))));
-
-                    messageType.Members.Add(new CodeSnippetTypeMember(string.Format(@"
-public static {0}.Response Send({1})
+                        messageType.Members.Add(new CodeSnippetTypeMember(string.Format(
+                            messageDef.Response == null ?
+@"public static void Send({1})
+{{
+    Serialize(stream, new {0}.Request
+    {{
+        {2}
+    }});
+}}" :
+@"public static {0}.Response Send({1})
 {{
     Serialize(stream, new {0}.Request
     {{
@@ -343,7 +362,50 @@ public static {0}.Response Send({1})
                                               let paramName = getFormalParamName(field)
                                               select string.Format("{0} = {1}", field.Name, paramName)))));
 
-                    CodeTypeDeclaration messageRequestType = null;
+                    // Add extensions methods for true RPC
+                        messagesType.Members.Add(new CodeSnippetTypeMember(string.Format(
+                            messageDef.Response == null ?
+@"public static void {1}(this {2})
+{{
+    {3}.Send({4});
+}}" :
+@"public static {0}.Response {1}(this {2})
+{{
+    return {3}.Send({4});
+}}",
+                            messageType.Name,
+                            messagesType.Name + messageType.Name,
+                            string.Join(", ", new[] { "Stream stream" }.Concat(from field in messageDef.Request.Fields
+                                        let paramName = getFormalParamName(field)
+                                        select string.Format("{0} {1}", field.Type, paramName))),
+                            messageType.Name,
+                            string.Join(", ", new[] { "stream" }.Concat(from field in messageDef.Request.Fields
+                                                                        let paramName = getFormalParamName(field)
+                                                                        select paramName))
+                                        )));
+
+                        messagesType.Members.Add(new CodeSnippetTypeMember(string.Format(
+                            messageDef.Response == null ?
+@"public static Task {1}Async(this {2})
+{{
+    {3}.SendAsync({4});
+}}" :
+@"public static Task<{0}.Response> {1}Async(this {2})
+{{
+    return {3}.SendAsync({4});
+}}",
+                            messageType.Name,
+                            messagesType.Name + messageType.Name,
+                            string.Join(", ", new[] { "Stream stream" }.Concat(from field in messageDef.Request.Fields
+                                                                               let paramName = getFormalParamName(field)
+                                                                               select string.Format("{0} {1}", field.Type, paramName))),
+                            messageType.Name,
+                            string.Join(", ", new[] { "stream" }.Concat(from field in messageDef.Request.Fields
+                                                                        let paramName = getFormalParamName(field)
+                                                                        select paramName))
+                                        )));
+
+                        CodeTypeDeclaration messageRequestType = null;
                     if (messageDef.Request != null)
                     {
                         messageRequestType = new CodeTypeDeclaration("Request")
