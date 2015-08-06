@@ -50,14 +50,13 @@ set <name>:<value>[,<name>:<value>,<name>:<value>,...]⏎ will store or overwrit
                     
                     var command = (Command)Enum.Parse(typeof(Command), match.Groups["command"].Value);
                     var names = (from Capture capture in match.Groups["names"].Captures select capture.Value).ToArray();
-                    var values = (from Capture capture in match.Groups["values"].Captures select capture.Value).ToArray();
-
+                    
                     switch (command)
                     {
                         case Command.get:
                             {
                                 var response = clientPipe.MessagesGetStrings(names);
-                                if (response.Result == Result.Success)
+                                if (response.Result == Messages.Result.Success)
                                     Console.WriteLine("Values for keys: {0} are: {1}", string.Join(", ", names), string.Join(", ", response.Values));
                                 else
                                     Console.WriteLine("There was an error fetching values for one or more keys: {0}", response.Message);
@@ -66,8 +65,15 @@ set <name>:<value>[,<name>:<value>,<name>:<value>,...]⏎ will store or overwrit
 
                         case Command.set:
                             {
-                                var response = clientPipe.MessagesSetStrings(names, values);
-                                if (response.Result == Result.Success)
+                                var kvps = Enumerable.Zip(names,
+                                    from Capture capture in match.Groups["values"].Captures select capture.Value,
+                                    (k, v) => new Messages.KeyValuePair
+                                    {
+                                        Key = k,
+                                        Value = v
+                                    });
+                                var response = clientPipe.MessagesSetStrings(kvps.ToArray());
+                                if (response.Result == Messages.Result.Success)
                                     Console.WriteLine("Successfully set values for keys: {0}", string.Join(", ", names));
                                 else
                                     Console.WriteLine("There was an error setting values for keys: {0}, error was: {1}",

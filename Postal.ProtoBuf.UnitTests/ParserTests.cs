@@ -4,6 +4,7 @@ using System;
 using System.Linq;
 
 using Postal.ProtoBuf;
+using System.IO;
 
 namespace Postal.ProtoBuf.UnitTests
 {
@@ -25,10 +26,63 @@ namespace Postal.Test;
 
 struct Test
 {
-    int OneValue;
+    int OneValue = 0xFFFF;
+    float ThirdValue = 3.14159265359;
+    string AnotherValue = ""This is a string value"";
     byte[] ArrayOfValues;
 }
 ";
+
+        private const string Test = @"
+namespace Postal.Test;
+
+const string RegistrationChannelName = ""ChannelRegistrar"";
+const float PI = 3.14159;
+
+enum Result
+{
+	UnknownError = 0;
+	Exception;
+	CouldNotFindKey;
+	Success;
+}
+
+struct MyStruct
+{
+    int OneValue = 0xFFFF;
+    float ThirdValue = 3.14159265359;
+    string AnotherValue = ""This is a string value"";
+    byte[] ArrayOfValues;
+}
+
+message SetStrings
+{
+	request
+	{
+		mandatory string[] Names;
+		mandatory string[] Values;
+	}
+	response
+	{
+		mandatory Result Result;
+		string Message;
+	}
+}
+
+message GetStrings
+{
+	request
+	{
+		mandatory string[] Names;
+        MyStruct struc;
+	}
+	response
+	{
+		mandatory Result Result = Result.Success;
+		string Message;
+		mandatory string[] Values;
+	}
+}";
 
         [TestCase]
         public void TestEnumParser()
@@ -62,6 +116,19 @@ struct Test
 
             Assert.AreEqual(structType.Fields.Last().Name, "ArrayOfValues");
             Assert.AreEqual(structType.Fields.Last().Type, "byte[]");
+        }
+
+        [TestCase]
+        public void Test2()
+        {
+            var def = MessageParser.ParseText(Test);
+            var postal = new Postal();
+            postal.OutputDir = AppDomain.CurrentDomain.BaseDirectory;
+            var codeDOM = postal.GenerateCodeDOM("Test.postal", def);
+            var code = postal.GenerateCSharpCode(codeDOM);
+            var header = postal.GenerateHeaderFile(def);
+            File.WriteAllText("Test.cs", code);
+            var proto = postal.GenerateProtoFile("Test.cs", codeDOM);
         }
     }
 }

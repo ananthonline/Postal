@@ -71,11 +71,17 @@ namespace Postal.ProtoBuf
                 var fullPath = InputFiles[i].GetMetadata(MetadataFullPath);
                 OutputDir = Path.GetDirectoryName(OutputFiles[i].ItemSpec);
 
-                var codeUnit = GenerateCodeDOM(fullPath, File.ReadAllText(InputFiles[i].ItemSpec));
+                var postalFileContents = File.ReadAllText(InputFiles[i].ItemSpec);
+                var parsed = MessageParser.ParseText(postalFileContents);
+                var codeUnit = GenerateCodeDOM(fullPath, parsed);
 
                 File.WriteAllText(OutputFiles[i].ItemSpec, GenerateCSharpCode(codeUnit));
                 var protoPath = Path.Combine(Path.GetDirectoryName(OutputFiles[i].ItemSpec), Path.GetFileNameWithoutExtension(OutputFiles[i].ItemSpec) + ".proto");
                 File.WriteAllText(protoPath, GenerateProtoFile(OutputFiles[i].ItemSpec, codeUnit));
+
+                var header = GenerateHeaderFile(parsed);
+                var headerPath = Path.Combine(Path.GetDirectoryName(OutputFiles[i].ItemSpec), Path.GetFileNameWithoutExtension(OutputFiles[i].ItemSpec) + ".h");
+                File.WriteAllText(headerPath, GenerateHeaderFile(parsed));
 
                 BuildEngine.LogMessageEvent(new BuildMessageEventArgs(string.Format("OutputDir is: {0}", OutputDir), "Postal", "Postal.ProtoBuf", MessageImportance.High));
             }
@@ -108,6 +114,32 @@ namespace Postal.ProtoBuf
             return result;
         }
 
+        private string HeaderFileTemplate =
+@"
+#pragma once
+
+#ifdef __cplusplus
+namespace {0}
+{{
+#endif
+
+{1}
+
+#ifdef __cplusplus
+}}
+#endif
+";
+
+        public string GenerateHeaderFile(MessageParser.PostalDefinition parsed)
+        {
+            var constants = from def in parsed.PostalTypes
+                            where def is MessageParser.ConstantDefinition
+                            let constDef = def as MessageParser.ConstantDefinition
+                            select string.Format("#define {0} {1}", constDef.Name, constDef.Value);
+
+            return string.Format(HeaderFileTemplate, parsed.Namespace, string.Join("\n", constants));
+        }
+
         private static readonly MethodInfo GetProtoMethod = typeof(Serializer).GetMethod("GetProto");
         private static readonly Regex RemoveMessageContainer = new Regex(@"message .+_MessagesContainer[^}]+}");
 
@@ -119,10 +151,15 @@ namespace Postal.ProtoBuf
             var parameters = new CompilerParameters
             {
                 GenerateExecutable = false,
-                ReferencedAssemblies = { "System.Core.dll", "System.Xml.dll", Path.Combine(OutputDir.Replace("obj", "bin"), "protobuf-net.dll") },
+                ReferencedAssemblies = { "System.dll", "System.Core.dll", "System.Xml.dll", Path.Combine(OutputDir.Replace("obj", "bin"), "protobuf-net.dll") },
                 OutputAssembly = string.Format("{0}\\{1}.dll", OutputDir.Replace("obj", "bin"), Guid.NewGuid().ToString())
             };
             var results = provider.CompileAssemblyFromSource(parameters, sourceCode);
+
+            if (results.Errors.Count > 0)
+                for (int i = 0; i < results.Errors.Count; i++)
+                    BuildEngine.LogErrorEvent(new BuildErrorEventArgs("Postal", results.Errors[i].ErrorNumber, results.Errors[i].FileName, results.Errors[i].Line, results.Errors[i].Column, results.Errors[i].Line, results.Errors[i].Column, results.Errors[i].ErrorText, "Postal", "Postal"));
+
             var assembly = results.CompiledAssembly; // Loads this assembly into our namespace
 
             var type = (from t in assembly.GetTypes()
@@ -149,10 +186,8 @@ namespace Postal.ProtoBuf
             return cs.CreateEscapedIdentifier(name);
         }
 
-        public CodeCompileUnit GenerateCodeDOM(string filename, string messageFileContents)
+        public CodeCompileUnit GenerateCodeDOM(string filename, MessageParser.PostalDefinition parsed)
         {
-
-            var parsed = MessageParser.ParseText(messageFileContents);
             var className = Path.GetFileNameWithoutExtension(filename);
 
             var codeUnit = new CodeCompileUnit();
@@ -161,6 +196,7 @@ namespace Postal.ProtoBuf
 
             ns.Imports.Add(new CodeNamespaceImport("System"));
             ns.Imports.Add(new CodeNamespaceImport("System.Collections.Generic"));
+            ns.Imports.Add(new CodeNamespaceImport("System.ComponentModel"));
             ns.Imports.Add(new CodeNamespaceImport("System.IO"));
             ns.Imports.Add(new CodeNamespaceImport("System.Linq"));
             ns.Imports.Add(new CodeNamespaceImport("System.Threading.Tasks"));
@@ -183,7 +219,7 @@ namespace Postal.ProtoBuf
                 TypeAttributes = TypeAttributes.Public,
                 CustomAttributes = { new CodeAttributeDeclaration("ProtoContract") }
             };
-            ns.Types.Add(messagesContainerType);
+            messagesType.Members.Add(messagesContainerType);
 
             messagesType.Members.Add(new CodeSnippetTypeMember("public delegate TResponse ProcessRequestDelegate<TRequest, TResponse>(TRequest request) where TRequest : IRequest where TResponse : IResponse;"));
 
@@ -253,6 +289,20 @@ public static void ProcessRequest(this Stream stream)
             int dummyFieldsTag = 1;
             foreach (var type in parsed.PostalTypes)
             {
+                var constDef = type as MessageParser.ConstantDefinition;
+                if (constDef != null)
+                {
+                    var qualifiedType = constDef.Type.ReplaceAll(builtInTypeReplacements);
+                    var constant = new CodeMemberField(qualifiedType, constDef.Name)
+                    {
+                        InitExpression = new CodeSnippetExpression(string.Format("({0}){1}", qualifiedType, constDef.Value)),
+                        Attributes = MemberAttributes.Const | MemberAttributes.Public
+                    };
+                    messagesType.Members.Add(constant);
+                    
+                    continue;
+                }
+                
                 var enumDef = type as MessageParser.EnumDefinition;
                 if (enumDef != null)
                 {
@@ -268,7 +318,7 @@ public static void ProcessRequest(this Stream stream)
                         enumType.Members.Add(field);
                     }
 
-                    ns.Types.Add(enumType);
+                    messagesType.Members.Add(enumType);
                     
                     continue;
                 }
@@ -286,15 +336,19 @@ public static void ProcessRequest(this Stream stream)
                     int fieldTag = 1;
                     foreach (var structField in structDef.Fields)
                     {
-                        structType.Members.Add(new CodeMemberField(structField.Type.ReplaceAll(builtInTypeReplacements), structField.Name)
+                        var field = new CodeMemberField(structField.Type.ReplaceAll(builtInTypeReplacements), structField.Name)
                             {
                                 CustomAttributes = { new CodeAttributeDeclaration("ProtoMember", new CodeAttributeArgument(new CodeSnippetExpression(fieldTag.ToString()))) },
                                 Attributes = MemberAttributes.Public
-                            });
+                            };
+                        if (structField.DefaultValue != null)
+                            field.CustomAttributes.Add(new CodeAttributeDeclaration("DefaultValue", new CodeAttributeArgument(new CodeSnippetExpression(structField.DefaultValue))));
+                        structType.Members.Add(field);
                         fieldTag++;
                     }
 
-                    ns.Types.Add(structType);
+                    messagesType.Members.Add(structType);
+                    messagesContainerType.Members.Add(new CodeSnippetTypeMember(string.Format("[ProtoMember({0})] public {1} struct{1} {{ get; set; }}", dummyFieldsTag++, structDef.Name)));
                     continue;
                 }
 
@@ -431,7 +485,9 @@ public static void ProcessRequest(this Stream stream)
                         int fieldTag = 1;
                         foreach (var field in messageDef.Request.Fields)
                         {
-                            var member = new CodeSnippetTypeMember(string.Format("[ProtoMember({2}, IsRequired = {3})] public {0} {1} {{ get; set; }}", field.Type, field.Name, fieldTag++, field.Mandatory.ToString().ToLowerInvariant()));
+                            var member = new CodeSnippetTypeMember(string.Format("[ProtoMember({2}, IsRequired = {3})] {4} public {0} {1} {{ get; set; }}",
+                                field.Type, field.Name, fieldTag++, field.Mandatory.ToString().ToLowerInvariant(), 
+                                field.DefaultValue != null ? string.Format("[DefaultValue({0})]", field.DefaultValue) : ""));
                             messageRequestType.Members.Add(member);
                         }
 
@@ -462,7 +518,9 @@ public static void ProcessRequest(this Stream stream)
                         int fieldTag = 1;
                         foreach (var field in messageDef.Response.Fields)
                         {
-                            var member = new CodeSnippetTypeMember(string.Format("[ProtoMember({2}, IsRequired = {3})] public {0} {1} {{ get; set; }}", field.Type, field.Name, fieldTag++, field.Mandatory.ToString().ToLowerInvariant()));
+                            var member = new CodeSnippetTypeMember(string.Format("[ProtoMember({2}, IsRequired = {3})] {4} public {0} {1} {{ get; set; }}", 
+                                field.Type, field.Name, fieldTag++, field.Mandatory.ToString().ToLowerInvariant(),
+                                field.DefaultValue != null ? string.Format("[DefaultValue({0})]", field.DefaultValue) : ""));
                             messageResponseType.Members.Add(member);
                         }
 

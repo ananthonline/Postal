@@ -19,8 +19,10 @@
 
     <TTGenPath Condition="($(TTGenPath) == '' Or $(TTGenPath) == '*Undefined*') And (Exists('$(CommonProgramFiles(x86))\Microsoft Shared\TextTemplating\10.0\TextTransform.exe'))">$(CommonProgramFiles(x86))\Microsoft Shared\TextTemplating\10.0\TextTransform.exe</TTGenPath>
     <TTGenPath Condition="($(TTGenPath) == '' Or $(TTGenPath) == '*Undefined*') And (Exists('$(CommonProgramFiles(x86))\Microsoft Shared\TextTemplating\11.0\TextTransform.exe'))">$(CommonProgramFiles(x86))\Microsoft Shared\TextTemplating\11.0\TextTransform.exe</TTGenPath>
+    <TTGenPath Condition="($(TTGenPath) == '' Or $(TTGenPath) == '*Undefined*') And (Exists('$(CommonProgramFiles(x86))\Microsoft Shared\TextTemplating\12.0\TextTransform.exe'))">$(CommonProgramFiles(x86))\Microsoft Shared\TextTemplating\12.0\TextTransform.exe</TTGenPath>
     <TTGenPath Condition="($(TTGenPath) == '' Or $(TTGenPath) == '*Undefined*') And (Exists('$(CommonProgramFiles)\Microsoft Shared\TextTemplating\10.0\TextTransform.exe'))">$(CommonProgramFiles)\Microsoft Shared\TextTemplating\10.0\TextTransform.exe</TTGenPath>
     <TTGenPath Condition="($(TTGenPath) == '' Or $(TTGenPath) == '*Undefined*') And (Exists('$(CommonProgramFiles)\Microsoft Shared\TextTemplating\11.0\TextTransform.exe'))">$(CommonProgramFiles)\Microsoft Shared\TextTemplating\11.0\TextTransform.exe</TTGenPath>
+    <TTGenPath Condition="($(TTGenPath) == '' Or $(TTGenPath) == '*Undefined*') And (Exists('$(CommonProgramFiles)\Microsoft Shared\TextTemplating\12.0\TextTransform.exe'))">$(CommonProgramFiles)\Microsoft Shared\TextTemplating\12.0\TextTransform.exe</TTGenPath>
     <TFPath Condition="$(TFPath) == '' Or $(NuGetToolsPathTFPath) == '*Undefined*'">$(MSBuildExtensionsPath32)\..\Microsoft Visual Studio 10.0\Common7\IDE\tf.exe</TFPath>
 
     <NuGetPackageName>$(ProjectDir)$(AssemblyName.Replace(".NuGetPackage", ""))</NuGetPackageName>
@@ -78,9 +80,9 @@
   <!-- Check all the pre-requisites are in place -->
   <Target Name="CheckNuGetPackageAndPublishPrerequisites">
     <!-- Raise an error if we're unable to locate nuget.exe  -->
-    <Error Condition="!Exists('$(NuGetExePath)') and ($(CreateNuGetPackage) == 'true' or $(PublishNuGetPackage) == 'true')" Text="Unable to locate '$(NuGetExePath)'" />
-    <Error Condition="!Exists('$(TTGenPath)') and $(RegenerateNuSpecFiles) == 'true'" Text="Unable to locate '$(TTGenPath)'" />
-    <Message Condition="!Exists('$(TFPath)') and $(RegenerateNuSpecFiles) == 'true'" Text="Unable to locate '$(TFPath)'" />
+    <Error Condition="!Exists('$(NuGetExePath)') and ($(CreateNuGetPackage) == 'true' or $(PublishNuGetPackage) == 'true')" Text="Unable to locate Nuget: '$(NuGetExePath)'" />
+    <Error Condition="!Exists('$(TTGenPath)') and $(RegenerateNuSpecFiles) == 'true'" Text="Unable to locate TTGenPath: '$(TTGenPath)'" />
+    <Message Condition="!Exists('$(TFPath)') and $(RegenerateNuSpecFiles) == 'true'" Text="Unable to locate TFPath: '$(TFPath)'" />
   </Target>
 
   <!-- Get the version info from the assembly to use as the version number of the assembly -->

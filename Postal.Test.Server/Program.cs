@@ -52,23 +52,23 @@ namespace Postal.Test.Server
         static Messages.SetStrings.Response setStrings_MessageReceived(Messages.SetStrings.Request request)
         {
             Console.WriteLine("Asked to set {0}",
-                string.Join(", ", from i in Enumerable.Range(0, request.Names.Length)
-                                  select string.Format("{0} = {1}", request.Names[i], request.Values[i])));
+                string.Join(", ", from i in Enumerable.Range(0, request.KeyValuePairs.Length)
+                                  select string.Format("{0} = {1}", request.KeyValuePairs[i].Key, request.KeyValuePairs[i].Value)));
             
             var response = new Messages.SetStrings.Response();
             try
             {
-                for (int i = 0; i < request.Names.Length; i++)
-                    _values[request.Names[i]] = request.Values[i];
+                for (int i = 0; i < request.KeyValuePairs.Length; i++)
+                    _values[request.KeyValuePairs[i].Key] = request.KeyValuePairs[i].Value;
             }
             catch (Exception ex)
             {
-                response.Result = Result.Exception;
+                response.Result = Messages.Result.Exception;
                 response.Message = ex.Message;
                 return response;
             }
 
-            response.Result = Result.Success;
+            response.Result = Messages.Result.Success;
             return response;
         }
 
@@ -78,7 +78,7 @@ namespace Postal.Test.Server
             var error = new StringBuilder();
             var response = new Messages.GetStrings.Response
             {
-                Result = Result.Success,
+                Result = Messages.Result.Success,
                 Values = new string[request.Names.Length]
             };
             try
@@ -87,7 +87,7 @@ namespace Postal.Test.Server
                 {
                     if (!_values.ContainsKey(request.Names[i]))
                     {
-                        response.Result = Result.CouldNotFindKey; // We failed to do something
+                        response.Result = Messages.Result.CouldNotFindKey; // We failed to do something
                         error.AppendFormat("Could not find key: {0}\n", request.Names[i]);
                         Console.WriteLine("Could not find key: {0}\n", request.Names[i]);
                         continue;
@@ -99,11 +99,11 @@ namespace Postal.Test.Server
             }
             catch (Exception ex)
             {
-                response.Result = Result.Exception;
+                response.Result = Messages.Result.Exception;
                 response.Message = ex.Message;
             }
 
-            if (response.Result != Result.Success)
+            if (response.Result != Messages.Result.Success)
                 response.Message = error.ToString();
 
             return response;

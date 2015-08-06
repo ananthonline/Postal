@@ -2,23 +2,31 @@
 
 enum Result
 {
-	UnknownError = 0;
+	None;
+	Success;
 	Exception;
 	CouldNotFindKey;
-	Success;
+	UnknownError;
+}
+
+const string EmptyString = "";
+
+struct KeyValuePair
+{
+	string Key;
+	string Value = EmptyString;
 }
 
 message SetStrings
 {
 	request
 	{
-		mandatory string[] Names;
-		mandatory string[] Values;
+		mandatory KeyValuePair[] KeyValuePairs;
 	}
 	response
 	{
-		mandatory Result Result;
-		string Message;
+		mandatory Result Result = Result.None;
+		string Message = EmptyString;
 	}
 }
 
@@ -30,8 +38,8 @@ message GetStrings
 	}
 	response
 	{
-		mandatory Result Result;
-		string Message;
-		mandatory string[] Values;
+		mandatory Result Result = Result.None;
+		string Message = EmptyString;
+		string[] Values;
 	}
 }

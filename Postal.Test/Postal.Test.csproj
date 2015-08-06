@@ -13,7 +13,7 @@
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
-    <NuGetPackageImportStamp>57d3c2f1</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>8d4e4d8e</NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -33,17 +33,17 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Postal.ProtoBuf, Version=1.1.3.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Postal.ProtoBuf.1.1.3.0\lib\Net40\Postal.ProtoBuf.dll</HintPath>
+    <Reference Include="Postal.ProtoBuf, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Postal.ProtoBuf.1.2.0.0\lib\Net40\Postal.ProtoBuf.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Postal.ProtoBuf.1.1.3.0\lib\Net40\protobuf-net.dll</HintPath>
+      <HintPath>..\packages\Postal.ProtoBuf.1.2.0.0\lib\Net40\protobuf-net.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Sprache, Version=2.0.0.44, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Postal.ProtoBuf.1.1.3.0\lib\Net40\Sprache.dll</HintPath>
+      <HintPath>..\packages\Postal.ProtoBuf.1.2.0.0\lib\Net40\Sprache.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -67,9 +67,9 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
-    <Error Condition="!Exists('..\packages\Postal.ProtoBuf.1.1.3.0\build\Postal.ProtoBuf.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Postal.ProtoBuf.1.1.3.0\build\Postal.ProtoBuf.targets'))" />
+    <Error Condition="!Exists('..\packages\Postal.ProtoBuf.1.2.0.0\build\Postal.ProtoBuf.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Postal.ProtoBuf.1.2.0.0\build\Postal.ProtoBuf.targets'))" />
   </Target>
-  <Import Project="..\packages\Postal.ProtoBuf.1.1.3.0\build\Postal.ProtoBuf.targets" Condition="Exists('..\packages\Postal.ProtoBuf.1.1.3.0\build\Postal.ProtoBuf.targets')" />
+  <Import Project="..\packages\Postal.ProtoBuf.1.2.0.0\build\Postal.ProtoBuf.targets" Condition="Exists('..\packages\Postal.ProtoBuf.1.2.0.0\build\Postal.ProtoBuf.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
