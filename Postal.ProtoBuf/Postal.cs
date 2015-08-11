@@ -202,6 +202,8 @@ namespace {0}
             ns.Imports.Add(new CodeNamespaceImport("System.Threading.Tasks"));
             ns.Imports.Add(new CodeNamespaceImport("global::ProtoBuf"));
 
+            ns.Imports.Add(new CodeNamespaceImport("Postal.Core"));
+
             var messagesType = new CodeTypeDeclaration(className)
             {
                 // Hack to make this class static so we can define extension methods
@@ -265,25 +267,6 @@ public static void ProcessRequest(this Stream stream)
         return;
     Serializer.NonGeneric.SerializeWithLengthPrefix(stream, request.InvokeReceived(), PrefixStyle.Base128, request.Tag);
 }"));
-
-            // Add IRequest and IResponse dummy interfaces for extension method
-            var requestInterfaceType = new CodeTypeDeclaration("IRequest")
-            {
-                IsInterface = true,
-                TypeAttributes = TypeAttributes.Public | TypeAttributes.Interface,
-                Members =
-                {
-                    new CodeMemberProperty { Name = "Tag", HasGet = true, Type = new CodeTypeReference(typeof(int)) },
-                    new CodeMemberMethod { Name = "InvokeReceived", ReturnType = new CodeTypeReference(typeof(object)) }
-                }
-            };
-            messagesType.Members.Add(requestInterfaceType);
-            var responseInterfaceType = new CodeTypeDeclaration("IResponse")
-            {
-                IsInterface = true,
-                TypeAttributes = TypeAttributes.Public | TypeAttributes.Interface
-            };
-            messagesType.Members.Add(responseInterfaceType);
 
             int messageTag = 1001;
             int dummyFieldsTag = 1;

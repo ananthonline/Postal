@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|AnyCPU">
+      <Configuration>Debug</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|AnyCPU">
+      <Configuration>Release</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Postal.ProtoBuf\Postal.ProtoBuf.csproj" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>38c08c0e-f6b1-45ad-b400-fa322012a7c9</ProjectGuid>
+  </PropertyGroup>
+  <PropertyGroup>
+    <NuProjPath Condition=" '$(NuProjPath)' == '' ">$(MSBuildExtensionsPath)\NuProj\</NuProjPath>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OutputPath>$(SolutionDir)</OutputPath>
+    <VersionDependsOn>$(VersionDependsOn);GetVersion</VersionDependsOn>
+    <!-- Change this per project to desired versioning assembly-->
+    <VersioningAssembly>$(SolutionDir)\Postal.ProtoBuf\bin\$(Configuration)\Postal.ProtoBuf.dll</VersioningAssembly>
+  </PropertyGroup>
+  <Target Name="GetVersion">
+    <GetAssemblyIdentity AssemblyFiles="$(VersioningAssembly)">
+      <Output TaskParameter="Assemblies" ItemName="VersioningAssemblyIdentity" />
+    </GetAssemblyIdentity>
+    <Message Text="in GetBuildVersion" />
+    <PropertyGroup>
+      <Version>%(VersioningAssemblyIdentity.Version)</Version>
+    </PropertyGroup>
+  </Target>
+  <Import Project="$(NuProjPath)\NuProj.props" Condition="Exists('$(NuProjPath)\NuProj.props')" />
+  <PropertyGroup Label="Configuration">
+    <Id>Postal.ProtoBuf</Id>
+    <Version>1.2.0.0</Version>
+    <Title>Postal.ProtoBuf</Title>
+    <Authors>ananthb</Authors>
+    <Owners>ananthb</Owners>
+    <Summary>Postal.ProtoBuf.Nupkg</Summary>
+    <Description>Postal is a code generator that generates strongly typed message contracts for request-response type protocols. Messages are serialized and deserialized using Protocol buffers.</Description>
+    <ReleaseNotes>
+    </ReleaseNotes>
+    <ProjectUrl>https://github.com/ananthonline/Postal</ProjectUrl>
+    <LicenseUrl>https://github.com/ananthonline/Postal/blob/master/LICENSE</LicenseUrl>
+    <Copyright>Copyright © ananthb</Copyright>
+    <Tags>request response protobuf-net typed dsl protocol streams</Tags>
+    <EmbedSourceFiles>true</EmbedSourceFiles>
+    <DevelopmentDependency>true</DevelopmentDependency>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="Postal.ProtoBuf.targets">
+      <Link>Build\Postal.ProtoBuf.targets</Link>
+    </Content>
+  </ItemGroup>
+  <Import Project="$(NuProjPath)\NuProj.targets" />
+</Project>

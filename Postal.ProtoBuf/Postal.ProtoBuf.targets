@@ -5,7 +5,7 @@
   <ItemGroup>
     <AvailableItemName Include="Postal"/>
   </ItemGroup>
-  <UsingTask TaskName="Postal.ProtoBuf.Postal" AssemblyFile="..\lib\Net40\Postal.ProtoBuf.dll" />
+  <UsingTask TaskName="Postal.ProtoBuf.Postal" AssemblyFile="..\lib\Net45\Postal.ProtoBuf.dll" />
   <Target Name="Postal" Inputs="@(Postal)" Outputs="@(Postal->'$(IntermediateOutputPath)%(FileName).postal.cs')">
     <Postal InputFiles="@(Postal)" OutputFiles="@(Postal->'$(IntermediateOutputPath)%(FileName).postal.cs')">
       <Output TaskParameter="OutputFiles" ItemName="PostalWrapper"/>

@@ -23,10 +23,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.Test.Server", "Posta
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.Test", "Postal.Test\Postal.Test.csproj", "{A1FECB63-477D-4892-9ED5-0B26628143EE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{38C08C0E-F6B1-45AD-B400-FA322012A7C9} = {38C08C0E-F6B1-45AD-B400-FA322012A7C9}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.ProtoBuf.UnitTests", "Postal.ProtoBuf.UnitTests\Postal.ProtoBuf.UnitTests.csproj", "{A5D378A0-6605-4F28-8CB2-FCA71D11C10A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.ProtoBuf.NuGetPackage", "Postal.ProtoBuf.NuGetPackage\Postal.ProtoBuf.NuGetPackage.csproj", "{151C48B3-CBA0-4DF9-90AA-9D14661AB977}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Postal.Core", "Postal.Core\Postal.Core.csproj", "{E0C98294-D46A-4055-BBBB-9B420C69DFFA}"
+EndProject
+Project("{FF286327-C783-4F7A-AB73-9BCBAD0D4460}") = "Postal.ProtoBuf.Nupkg", "Postal.ProtoBuf\Postal.ProtoBuf.Nupkg.nuproj", "{38C08C0E-F6B1-45AD-B400-FA322012A7C9}"
+EndProject
+Project("{FF286327-C783-4F7A-AB73-9BCBAD0D4460}") = "Postal.Core.Nupkg", "Postal.Core\Postal.Core.Nupkg.nuproj", "{8DCFCC30-31B1-4F61-8ABE-6C3F5BE34A26}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -54,10 +61,18 @@ Global
 		{A5D378A0-6605-4F28-8CB2-FCA71D11C10A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A5D378A0-6605-4F28-8CB2-FCA71D11C10A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A5D378A0-6605-4F28-8CB2-FCA71D11C10A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{151C48B3-CBA0-4DF9-90AA-9D14661AB977}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{151C48B3-CBA0-4DF9-90AA-9D14661AB977}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{151C48B3-CBA0-4DF9-90AA-9D14661AB977}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{151C48B3-CBA0-4DF9-90AA-9D14661AB977}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0C98294-D46A-4055-BBBB-9B420C69DFFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0C98294-D46A-4055-BBBB-9B420C69DFFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0C98294-D46A-4055-BBBB-9B420C69DFFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0C98294-D46A-4055-BBBB-9B420C69DFFA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38C08C0E-F6B1-45AD-B400-FA322012A7C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38C08C0E-F6B1-45AD-B400-FA322012A7C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38C08C0E-F6B1-45AD-B400-FA322012A7C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38C08C0E-F6B1-45AD-B400-FA322012A7C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DCFCC30-31B1-4F61-8ABE-6C3F5BE34A26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DCFCC30-31B1-4F61-8ABE-6C3F5BE34A26}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DCFCC30-31B1-4F61-8ABE-6C3F5BE34A26}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DCFCC30-31B1-4F61-8ABE-6C3F5BE34A26}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

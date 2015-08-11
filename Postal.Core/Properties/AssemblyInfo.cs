@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Postal.ProtoBuf.NuGetPackage")]
-[assembly: AssemblyDescription("Postal.ProtoBuf.NuGetPackage")]
+[assembly: AssemblyTitle("Postal.Core")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Postal.ProtoBuf.NuGetPackage")]
-[assembly: AssemblyCopyright("Copyright ©  2012")]
+[assembly: AssemblyProduct("Postal.Core")]
+[assembly: AssemblyCopyright("Copyright ©  2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,4 +20,4 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("9099d999-61c3-4ac0-8f4e-ad5befeee6eb")]
+[assembly: Guid("df2e2a63-9cef-41e0-82e7-04cbc0f21bbd")]

@@ -8,7 +8,7 @@ namespace Postal.ProtoBuf
 {
     public static class StringExtensions
     {
-        public static string ReplaceAll(this string str, IDictionary<string, string> replacements)
+        public static string ReplaceAll(this string str, Dictionary<string, string> replacements)
         { 
             var final = str;
             foreach (var kvp in replacements)
