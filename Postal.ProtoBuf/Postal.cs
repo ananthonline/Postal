@@ -79,9 +79,9 @@ namespace Postal.ProtoBuf
                 var protoPath = Path.Combine(Path.GetDirectoryName(OutputFiles[i].ItemSpec), Path.GetFileNameWithoutExtension(OutputFiles[i].ItemSpec) + ".proto");
                 File.WriteAllText(protoPath, GenerateProtoFile(OutputFiles[i].ItemSpec, codeUnit));
 
-                var header = GenerateHeaderFile(parsed);
+                var headerText = GenerateHeaderFile(parsed);
                 var headerPath = Path.Combine(Path.GetDirectoryName(OutputFiles[i].ItemSpec), Path.GetFileNameWithoutExtension(OutputFiles[i].ItemSpec) + ".h");
-                File.WriteAllText(headerPath, GenerateHeaderFile(parsed));
+                File.WriteAllText(headerPath, headerText);
 
                 BuildEngine.LogMessageEvent(new BuildMessageEventArgs(string.Format("OutputDir is: {0}", OutputDir), "Postal", "Postal.ProtoBuf", MessageImportance.High));
             }
@@ -196,6 +196,7 @@ namespace {0}
 
             ns.Imports.Add(new CodeNamespaceImport("System"));
             ns.Imports.Add(new CodeNamespaceImport("System.Collections.Generic"));
+            ns.Imports.Add(new CodeNamespaceImport("System.Collections.ObjectModel"));
             ns.Imports.Add(new CodeNamespaceImport("System.ComponentModel"));
             ns.Imports.Add(new CodeNamespaceImport("System.IO"));
             ns.Imports.Add(new CodeNamespaceImport("System.Linq"));
@@ -229,11 +230,13 @@ namespace {0}
                 string.Join(",\n", from message in parsed.PostalTypes
                                    where message is MessageParser.MessageDefinition
                                    select string.Format("{{ {0}.{0}Tag, typeof({0}.Request) }}", (message as MessageParser.MessageDefinition).Name)))));
+            messagesType.Members.Add(new CodeSnippetTypeMember("public readonly static ReadOnlyDictionary<int, Type> MessageRequestTypes = new ReadOnlyDictionary<int, Type>(_messageRequestTypes);"));
 
             messagesType.Members.Add(new CodeSnippetTypeMember(string.Format("private readonly static Dictionary<int, Type> _messageResponseTypes = new Dictionary<int, Type>(){{ {0} }};",
                 string.Join(",\n", from message in parsed.PostalTypes
                                    where message is MessageParser.MessageDefinition
                                    select string.Format("{{ {0}.{0}Tag, typeof({0}.Response) }}", (message as MessageParser.MessageDefinition).Name)))));
+            messagesType.Members.Add(new CodeSnippetTypeMember("public readonly static ReadOnlyDictionary<int, Type> MessageResponseTypes = new ReadOnlyDictionary<int, Type>(_messageResponseTypes);"));
 
             messagesType.Members.Add(new CodeSnippetTypeMember(@"
 private static void Serialize<T>(Stream stream, T request) where T: IRequest

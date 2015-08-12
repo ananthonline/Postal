@@ -43,3 +43,13 @@ message GetStrings
 		string[] Values;
 	}
 }
+
+message Exit
+{
+	request { }
+	response 
+	{
+		mandatory Result Result = Result.None;
+		string Message = EmptyString;
+	}
+}

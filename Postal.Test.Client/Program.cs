@@ -11,9 +11,10 @@ namespace Postal.Test.Client
         const string Usage =
 @"You can type any of the following commands into the prompt below.
 get <name>[,<name>,<name>...]⏎ will get one or more values stored against that name
-set <name>:<value>[,<name>:<value>,<name>:<value>,...]⏎ will store or overwrite one or more stored values";
+set <name>:<value>[,<name>:<value>,<name>:<value>,...]⏎ will store or overwrite one or more stored values
+exit will shut down the client and server";
 
-        static readonly Regex _commandRegex = new Regex(@"(?<command>get|set)\s+((?<names>[^:^,]+)\s*((\:\s*(?<values>[^:^,]+))?(,\s*)?)+)+", RegexOptions.Compiled | RegexOptions.Singleline);
+        static readonly Regex _commandRegex = new Regex(@"(?<command>get|set|exit)(\s+((?<names>[^:^,]+)\s*((\:\s*(?<values>[^:^,]+))?(,\s*)?)+)+)?", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // All lowercase so we can parse strings to this enum
         enum Command
@@ -82,6 +83,9 @@ set <name>:<value>[,<name>:<value>,<name>:<value>,...]⏎ will store or overwrit
                             }
                             break;
                         case Command.exit:
+                            Console.WriteLine("Asked to exit, shutting down server");
+                            clientPipe.MessagesExit();
+                            Console.WriteLine("Asked to exit, shutting down client");
                             exit = true;
                             break;
                     }
