@@ -18,5 +18,9 @@ namespace Postal.Core
 
     public interface IResponse
     {
+        int Tag
+        {
+            get;
+        }
     }
 }

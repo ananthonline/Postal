@@ -464,9 +464,9 @@ public static void ProcessRequest(this Stream stream)
                                                  }) 
                             }
                         };
-                        messageType.Members.Add(messageRequestType);
                         messageRequestType.Members.Add(new CodeSnippetTypeMember(string.Format("int IRequest.Tag {{ get {{ return {0}Tag; }} }}", messageType.Name)));
                         messageRequestType.Members.Add(new CodeSnippetTypeMember(string.Format("object IRequest.InvokeReceived() {{ return {0}.MessageReceived(this); }}", messageType.Name)));
+                        messageType.Members.Add(messageRequestType);
 
                         int fieldTag = 1;
                         foreach (var field in messageDef.Request.Fields)
@@ -499,6 +499,7 @@ public static void ProcessRequest(this Stream stream)
                                                  })
                             }
                         };
+                        messageResponseType.Members.Add(new CodeSnippetTypeMember(string.Format("int IResponse.Tag {{ get {{ return {0}Tag; }} }}", messageType.Name)));
                         messageType.Members.Add(messageResponseType);
 
                         int fieldTag = 1;
