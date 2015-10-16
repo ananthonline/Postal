@@ -32,18 +32,18 @@ namespace Postal.ProtoBuf
             { "object", "Object" },
             { "string", "String" },
             { "bool", "Boolean" },
+            { "sbyte", "SByte" },
             { "byte", "Byte" },
             { "char", "Char" },
             { "decimal", "Decimal" },
             { "double", "Double" },
-            { "short", "Int16" },
-            { "int", "Int32" },
-            { "long", "Int64" },
-            { "sbyte", "SByte" },
-            { "float", "Single" },
             { "ushort", "UInt16" },
+            { "short", "Int16" },
+            { "ulong", "UInt64" },
+            { "long", "Int64" },
+            { "float", "Single" },
             { "uint", "UInt32" },
-            { "ulong", "UInt64" }
+            { "int", "Int32" }
         };
 
         private const string MetadataLink = "Link";

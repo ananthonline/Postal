@@ -53,6 +53,7 @@ struct MyStruct
     float ThirdValue = 3.14159265359;
     string AnotherValue = ""This is a string value"";
     byte[] ArrayOfValues;
+    uint test;
 }
 
 message SetStrings
