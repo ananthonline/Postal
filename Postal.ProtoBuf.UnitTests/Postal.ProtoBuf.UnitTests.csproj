@@ -13,7 +13,7 @@
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
-    <NuGetPackageImportStamp>8bda982a</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>a1780ed3</NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -37,14 +37,6 @@
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.3.0.0-beta-2\lib\net45\nunit.framework.dll</HintPath>
     </Reference>
-    <Reference Include="Postal.Core, Version=1.3.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Postal.Core.1.3.2.0\lib\net45\Postal.Core.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Postal.ProtoBuf, Version=1.3.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Postal.ProtoBuf.1.3.2.0\lib\net45\Postal.ProtoBuf.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
       <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
       <Private>True</Private>
@@ -66,6 +58,16 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Postal.Core\Postal.Core.csproj">
+      <Project>{e0c98294-d46a-4055-bbbb-9b420c69dffa}</Project>
+      <Name>Postal.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Postal.ProtoBuf\Postal.ProtoBuf.csproj">
+      <Project>{895c0bf0-8fa0-4ace-9982-47c959b8660f}</Project>
+      <Name>Postal.ProtoBuf</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
@@ -73,9 +75,7 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
-    <Error Condition="!Exists('..\packages\Postal.ProtoBuf.1.3.2.0\Build\Postal.ProtoBuf.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Postal.ProtoBuf.1.3.2.0\Build\Postal.ProtoBuf.targets'))" />
   </Target>
-  <Import Project="..\packages\Postal.ProtoBuf.1.3.2.0\Build\Postal.ProtoBuf.targets" Condition="Exists('..\packages\Postal.ProtoBuf.1.3.2.0\Build\Postal.ProtoBuf.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

@@ -15,7 +15,7 @@ using System.Collections.Generic;
 
 namespace Postal.ProtoBuf
 {
-    public sealed class Postal: ITask
+    public sealed class Postal : ITask
     {
         public IBuildEngine BuildEngine { get; set; }
         public ITaskHost HostObject { get; set; }
@@ -57,7 +57,7 @@ namespace Postal.ProtoBuf
 
             for (int i = 0; i < InputFiles.Length; i++)
             {
-                BuildEngine.LogMessageEvent(new BuildMessageEventArgs(string.Format("Generating message wrappers for {0}", Path.GetFileName(InputFiles[i].ItemSpec)), 
+                BuildEngine.LogMessageEvent(new BuildMessageEventArgs(string.Format("Generating message wrappers for {0}", Path.GetFileName(InputFiles[i].ItemSpec)),
                     "Postal", "Postal.ProtoBuf", MessageImportance.High));
 
                 foreach (var mi in InputFiles[i].MetadataNames)
@@ -186,6 +186,27 @@ namespace {0}
             return cs.CreateEscapedIdentifier(name);
         }
 
+        const int MUST_BE_LESS_THAN = int.MaxValue; // 8 decimal digits
+        private static int GetStableHash(string s)
+        {
+            uint hash = 0;
+            // if you care this can be done much faster with unsafe 
+            // using fixed char* reinterpreted as a byte*
+            foreach (byte b in System.Text.Encoding.Unicode.GetBytes(s))
+            {   
+                hash += b;
+                hash += (hash << 10);
+                hash ^= (hash >> 6);    
+            }
+            // final avalanche
+            hash += (hash << 3);
+            hash ^= (hash >> 11);
+            hash += (hash << 15);
+            // helpfully we only want positive integer < MUST_BE_LESS_THAN
+            // so simple truncate cast is ok if not perfect
+            return (int)(hash % MUST_BE_LESS_THAN);
+        }
+        
         public CodeCompileUnit GenerateCodeDOM(string filename, MessageParser.PostalDefinition parsed)
         {
             var className = Path.GetFileNameWithoutExtension(filename);
@@ -271,7 +292,6 @@ public static void ProcessRequest(this Stream stream)
     Serializer.NonGeneric.SerializeWithLengthPrefix(stream, request.InvokeReceived(), PrefixStyle.Base128, request.Tag);
 }"));
 
-            int messageTag = 1001;
             int dummyFieldsTag = 1;
             foreach (var type in parsed.PostalTypes)
             {
@@ -285,10 +305,10 @@ public static void ProcessRequest(this Stream stream)
                         Attributes = MemberAttributes.Const | MemberAttributes.Public
                     };
                     messagesType.Members.Add(constant);
-                    
+
                     continue;
                 }
-                
+
                 var enumDef = type as MessageParser.EnumDefinition;
                 if (enumDef != null)
                 {
@@ -305,14 +325,14 @@ public static void ProcessRequest(this Stream stream)
                     }
 
                     messagesType.Members.Add(enumType);
-                    
+
                     continue;
                 }
 
                 var structDef = type as MessageParser.StructDefinition;
                 if (structDef != null)
                 {
-                    var structType = new CodeTypeDeclaration(structDef.Name) 
+                    var structType = new CodeTypeDeclaration(structDef.Name)
                     {
                         IsStruct = true,
                         IsPartial = true,
@@ -348,7 +368,7 @@ public static void ProcessRequest(this Stream stream)
                     };
                     messagesType.Members.Add(messageType);
 
-                    messageType.Members.Add(new CodeSnippetTypeMember(string.Format("public const int {0}Tag = {1};", messageType.Name, messageTag++)));
+                    messageType.Members.Add(new CodeSnippetTypeMember(string.Format("public const int {0}Tag = {1};", messageType.Name, GetStableHash(string.Format("{0}.{1}.{2}", ns.Name, messagesType.Name, messageType.Name)))));
                     messageType.Members.Add(new CodeSnippetTypeMember(@"public static event ProcessRequestDelegate<Request, Response> MessageReceived;"));
 
                     messageType.Members.Add(new CodeSnippetTypeMember(string.Format(
@@ -362,7 +382,7 @@ public static void ProcessRequest(this Stream stream)
             {2}
         }});
     }});
-}}": 
+}}" :
 @"public static Task<{0}.Response> SendAsync({1})
 {{
     return Task.Factory.StartNew(() =>
@@ -379,8 +399,8 @@ public static void ProcessRequest(this Stream stream)
                           string.Join(", \n", from field in messageDef.Request.Fields
                                               let paramName = getFormalParamName(field)
                                               select string.Format("{0} = {1}", field.Name, paramName)))));
-                        messageType.Members.Add(new CodeSnippetTypeMember(string.Format(
-                            messageDef.Response == null ?
+                    messageType.Members.Add(new CodeSnippetTypeMember(string.Format(
+                        messageDef.Response == null ?
 @"public static void Send({1})
 {{
     Serialize(stream, new {0}.Request
@@ -398,13 +418,13 @@ public static void ProcessRequest(this Stream stream)
 }}", messageType.Name, string.Join(", ", new[] { "Stream stream" }.Concat(from field in messageDef.Request.Fields
                                                                           let paramName = getFormalParamName(field)
                                                                           select string.Format("{0} {1}", field.Type, paramName))),
-                          string.Join(", \n", from field in messageDef.Request.Fields
-                                              let paramName = getFormalParamName(field)
-                                              select string.Format("{0} = {1}", field.Name, paramName)))));
+                      string.Join(", \n", from field in messageDef.Request.Fields
+                                          let paramName = getFormalParamName(field)
+                                          select string.Format("{0} = {1}", field.Name, paramName)))));
 
                     // Add extensions methods for true RPC
-                        messagesType.Members.Add(new CodeSnippetTypeMember(string.Format(
-                            messageDef.Response == null ?
+                    messagesType.Members.Add(new CodeSnippetTypeMember(string.Format(
+                        messageDef.Response == null ?
 @"public static void {1}(this {2})
 {{
     {3}.Send({4});
@@ -413,19 +433,19 @@ public static void ProcessRequest(this Stream stream)
 {{
     return {3}.Send({4});
 }}",
-                            messageType.Name,
-                            messagesType.Name + messageType.Name,
-                            string.Join(", ", new[] { "Stream stream" }.Concat(from field in messageDef.Request.Fields
-                                        let paramName = getFormalParamName(field)
-                                        select string.Format("{0} {1}", field.Type, paramName))),
-                            messageType.Name,
-                            string.Join(", ", new[] { "stream" }.Concat(from field in messageDef.Request.Fields
-                                                                        let paramName = getFormalParamName(field)
-                                                                        select paramName))
-                                        )));
+                        messageType.Name,
+                        messagesType.Name + messageType.Name,
+                        string.Join(", ", new[] { "Stream stream" }.Concat(from field in messageDef.Request.Fields
+                                                                           let paramName = getFormalParamName(field)
+                                                                           select string.Format("{0} {1}", field.Type, paramName))),
+                        messageType.Name,
+                        string.Join(", ", new[] { "stream" }.Concat(from field in messageDef.Request.Fields
+                                                                    let paramName = getFormalParamName(field)
+                                                                    select paramName))
+                                    )));
 
-                        messagesType.Members.Add(new CodeSnippetTypeMember(string.Format(
-                            messageDef.Response == null ?
+                    messagesType.Members.Add(new CodeSnippetTypeMember(string.Format(
+                        messageDef.Response == null ?
 @"public static Task {1}Async(this {2})
 {{
     {3}.SendAsync({4});
@@ -434,18 +454,18 @@ public static void ProcessRequest(this Stream stream)
 {{
     return {3}.SendAsync({4});
 }}",
-                            messageType.Name,
-                            messagesType.Name + messageType.Name,
-                            string.Join(", ", new[] { "Stream stream" }.Concat(from field in messageDef.Request.Fields
-                                                                               let paramName = getFormalParamName(field)
-                                                                               select string.Format("{0} {1}", field.Type, paramName))),
-                            messageType.Name,
-                            string.Join(", ", new[] { "stream" }.Concat(from field in messageDef.Request.Fields
-                                                                        let paramName = getFormalParamName(field)
-                                                                        select paramName))
-                                        )));
+                        messageType.Name,
+                        messagesType.Name + messageType.Name,
+                        string.Join(", ", new[] { "Stream stream" }.Concat(from field in messageDef.Request.Fields
+                                                                           let paramName = getFormalParamName(field)
+                                                                           select string.Format("{0} {1}", field.Type, paramName))),
+                        messageType.Name,
+                        string.Join(", ", new[] { "stream" }.Concat(from field in messageDef.Request.Fields
+                                                                    let paramName = getFormalParamName(field)
+                                                                    select paramName))
+                                    )));
 
-                        CodeTypeDeclaration messageRequestType = null;
+                    CodeTypeDeclaration messageRequestType = null;
                     if (messageDef.Request != null)
                     {
                         messageRequestType = new CodeTypeDeclaration("Request")
@@ -472,7 +492,7 @@ public static void ProcessRequest(this Stream stream)
                         foreach (var field in messageDef.Request.Fields)
                         {
                             var member = new CodeSnippetTypeMember(string.Format("[ProtoMember({2}, IsRequired = {3})] {4} public {0} {1} {{ get; set; }}",
-                                field.Type, field.Name, fieldTag++, field.Mandatory.ToString().ToLowerInvariant(), 
+                                field.Type, field.Name, fieldTag++, field.Mandatory.ToString().ToLowerInvariant(),
                                 field.DefaultValue != null ? string.Format("[DefaultValue({0})]", field.DefaultValue) : ""));
                             messageRequestType.Members.Add(member);
                         }
@@ -505,7 +525,7 @@ public static void ProcessRequest(this Stream stream)
                         int fieldTag = 1;
                         foreach (var field in messageDef.Response.Fields)
                         {
-                            var member = new CodeSnippetTypeMember(string.Format("[ProtoMember({2}, IsRequired = {3})] {4} public {0} {1} {{ get; set; }}", 
+                            var member = new CodeSnippetTypeMember(string.Format("[ProtoMember({2}, IsRequired = {3})] {4} public {0} {1} {{ get; set; }}",
                                 field.Type, field.Name, fieldTag++, field.Mandatory.ToString().ToLowerInvariant(),
                                 field.DefaultValue != null ? string.Format("[DefaultValue({0})]", field.DefaultValue) : ""));
                             messageResponseType.Members.Add(member);
