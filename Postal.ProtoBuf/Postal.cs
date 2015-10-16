@@ -186,7 +186,7 @@ namespace {0}
             return cs.CreateEscapedIdentifier(name);
         }
 
-        const int MUST_BE_LESS_THAN = int.MaxValue; // 8 decimal digits
+        const int MUST_BE_LESS_THAN = 100000000; // 8 decimal digits
         private static int GetStableHash(string s)
         {
             uint hash = 0;
