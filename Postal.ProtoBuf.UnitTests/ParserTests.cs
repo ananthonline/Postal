@@ -129,7 +129,7 @@ message GetStrings
             var code = postal.GenerateCSharpCode(codeDOM);
             var header = postal.GenerateHeaderFile(def);
             File.WriteAllText("Test.cs", code);
-            var proto = postal.GenerateProtoFile("Test.cs", codeDOM);
+            var proto = postal.GenerateProtoFile("Test.cs", postal.GenerateCodeDOM("Test.postal", def), def);
         }
     }
 }

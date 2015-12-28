@@ -16,7 +16,7 @@ namespace Postal.Test.Server
 
         static void Main(string[] args)
         {
-            using (_serverPipe = new NamedPipeServerStream(PipeDetails.Name, PipeDirection.InOut))
+            using (_serverPipe = new NamedPipeServerStream(Messages.PipeName, PipeDirection.InOut))
             {
                 Messages.GetStrings.MessageReceived += getStrings_MessageReceived;
                 Messages.SetStrings.MessageReceived += setStrings_MessageReceived;
@@ -40,10 +40,11 @@ namespace Postal.Test.Server
                         Console.WriteLine("Server pipe error");
                         _serverPipe.Disconnect();
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        Console.WriteLine("Unknown error, quitting");
+                        Console.WriteLine("Unknown error: {0}, quitting\nStacktrace: {1}", ex.Message, ex.StackTrace);
                         _serverPipe.Disconnect();
+                        return;
                     }
                 }
             }

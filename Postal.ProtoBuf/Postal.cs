@@ -12,6 +12,7 @@ using Microsoft.Build.Framework;
 using Microsoft.CSharp;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Postal.ProtoBuf
 {
@@ -69,7 +70,8 @@ namespace Postal.ProtoBuf
                 var copy = InputFiles[i].GetMetadata(MetadataCopyToOutputDirectory);
                 var copyToOutputDirectory = !string.IsNullOrEmpty(copy) || (copy == "PreserveNewest") || (copy == "Always");
                 var fullPath = InputFiles[i].GetMetadata(MetadataFullPath);
-                OutputDir = Path.GetDirectoryName(OutputFiles[i].ItemSpec);
+                OutputDir = Path.GetFullPath(Path.GetDirectoryName(OutputFiles[i].ItemSpec));
+                BuildEngine.LogMessageEvent(new BuildMessageEventArgs(string.Format("\tOutputDir: {0}", OutputDir), "Postal", "Postal.ProtoBuf", MessageImportance.High));
 
                 var postalFileContents = File.ReadAllText(InputFiles[i].ItemSpec);
                 var parsed = MessageParser.ParseText(postalFileContents);
@@ -77,13 +79,11 @@ namespace Postal.ProtoBuf
 
                 File.WriteAllText(OutputFiles[i].ItemSpec, GenerateCSharpCode(codeUnit));
                 var protoPath = Path.Combine(Path.GetDirectoryName(OutputFiles[i].ItemSpec), Path.GetFileNameWithoutExtension(OutputFiles[i].ItemSpec) + ".proto");
-                File.WriteAllText(protoPath, GenerateProtoFile(OutputFiles[i].ItemSpec, codeUnit));
+                File.WriteAllText(protoPath, GenerateProtoFile(OutputFiles[i].ItemSpec, GenerateCodeDOM(fullPath, parsed), parsed));
 
                 var headerText = GenerateHeaderFile(parsed);
                 var headerPath = Path.Combine(Path.GetDirectoryName(OutputFiles[i].ItemSpec), Path.GetFileNameWithoutExtension(OutputFiles[i].ItemSpec) + ".h");
                 File.WriteAllText(headerPath, headerText);
-
-                BuildEngine.LogMessageEvent(new BuildMessageEventArgs(string.Format("OutputDir is: {0}", OutputDir), "Postal", "Postal.ProtoBuf", MessageImportance.High));
             }
 
             return true;
@@ -143,7 +143,13 @@ namespace {0}
         private static readonly MethodInfo GetProtoMethod = typeof(Serializer).GetMethod("GetProto");
         private static readonly Regex RemoveMessageContainer = new Regex(@"message .+_MessagesContainer[^}]+}");
 
-        public string GenerateProtoFile(string sourceFilename, CodeCompileUnit compileUnit)
+        private static string RemoveAllExtensions(string filename)
+        {
+            int index = filename.IndexOf('.');
+            return index == -1 ? filename : filename.Substring(0, index);
+        }
+
+        public string GenerateProtoFile(string sourceFilename, CodeCompileUnit compileUnit, MessageParser.PostalDefinition parsed)
         {
             var provider = new CSharpCodeProvider();
             var sourceCode = File.ReadAllText(sourceFilename);
@@ -151,8 +157,12 @@ namespace {0}
             var parameters = new CompilerParameters
             {
                 GenerateExecutable = false,
-                ReferencedAssemblies = { "System.dll", "System.Core.dll", "System.Xml.dll", Path.Combine(OutputDir.Replace("obj", "bin"), "protobuf-net.dll") },
-                OutputAssembly = string.Format("{0}\\{1}.dll", OutputDir.Replace("obj", "bin"), Guid.NewGuid().ToString())
+                GenerateInMemory = true,
+                ReferencedAssemblies = { "Microsoft.CSharp.dll", "System.dll", "System.Core.dll", "System.Xml.dll",
+                    Path.Combine(OutputDir.Replace("obj", "bin"), "protobuf-net.dll"),
+                    Path.Combine(OutputDir.Replace("obj", "bin"), "Postal.Core.dll"),
+                    Path.Combine(OutputDir.Replace("obj", "bin"), "Sprache.dll")},
+                OutputAssembly = string.Format("{0}\\{1}.dll", OutputDir.Replace("obj", "bin"), Guid.NewGuid().ToString()),
             };
             var results = provider.CompileAssemblyFromSource(parameters, sourceCode);
 
@@ -174,8 +184,24 @@ namespace {0}
 
             var proto = (string)method.Invoke(null, null);
             proto = RemoveMessageContainer.Replace(proto, "");
+            var messagesTypeName = RemoveAllExtensions(Path.GetFileName(sourceFilename));
+            var sb = new StringBuilder();
+            sb.AppendFormat("message {0}\n", messagesTypeName);
+            sb.AppendLine("{");
+            sb.AppendLine("   oneof Payload");
+            sb.AppendLine("   {");
+            foreach (var postalType in parsed.PostalTypes)
+            {
+                var message = postalType as MessageParser.MessageDefinition;
+                if (message == null)
+                    continue;
+                sb.AppendFormat("      {0}Request {0}Request = {1};\n", message.Name, GetStableHash(string.Format("{0}.{1}.{2}.Request", parsed.Namespace, messagesTypeName, message.Name)));
+                sb.AppendFormat("      {0}Response {0}Response = {1};\n", message.Name, GetStableHash(string.Format("{0}.{1}.{2}.Response", parsed.Namespace, messagesTypeName, message.Name)));
+            }
+            sb.AppendLine("   }");
+            sb.AppendLine("}");
 
-            return proto;
+            return proto + "\n" + sb.ToString();
         }
 
         private readonly CSharpCodeProvider cs = new CSharpCodeProvider();
@@ -238,7 +264,8 @@ namespace {0}
             };
             ns.Types.Add(messagesType);
 
-            var messagesContainerType = new CodeTypeDeclaration(string.Format("{0}_MessagesContainer", messagesType.Name))
+            CodeTypeDeclaration messagesContainerType = null;
+            messagesContainerType = new CodeTypeDeclaration(string.Format("{0}_MessagesContainer", messagesType.Name))
             {
                 TypeAttributes = TypeAttributes.Public,
                 CustomAttributes = { new CodeAttributeDeclaration("ProtoContract") }
@@ -250,13 +277,13 @@ namespace {0}
             messagesType.Members.Add(new CodeSnippetTypeMember(string.Format("private readonly static Dictionary<int, Type> _messageRequestTypes = new Dictionary<int, Type>(){{ {0} }};",
                 string.Join(",\n", from message in parsed.PostalTypes
                                    where message is MessageParser.MessageDefinition
-                                   select string.Format("{{ {0}.{0}Tag, typeof({0}.Request) }}", (message as MessageParser.MessageDefinition).Name)))));
+                                   select string.Format("{{ {0}.{0}RequestTag, typeof({0}.Request) }}", (message as MessageParser.MessageDefinition).Name)))));
             messagesType.Members.Add(new CodeSnippetTypeMember("public readonly static ReadOnlyDictionary<int, Type> MessageRequestTypes = new ReadOnlyDictionary<int, Type>(_messageRequestTypes);"));
 
             messagesType.Members.Add(new CodeSnippetTypeMember(string.Format("private readonly static Dictionary<int, Type> _messageResponseTypes = new Dictionary<int, Type>(){{ {0} }};",
                 string.Join(",\n", from message in parsed.PostalTypes
                                    where message is MessageParser.MessageDefinition
-                                   select string.Format("{{ {0}.{0}Tag, typeof({0}.Response) }}", (message as MessageParser.MessageDefinition).Name)))));
+                                   select string.Format("{{ {0}.{0}ResponseTag, typeof({0}.Response) }}", (message as MessageParser.MessageDefinition).Name)))));
             messagesType.Members.Add(new CodeSnippetTypeMember("public readonly static ReadOnlyDictionary<int, Type> MessageResponseTypes = new ReadOnlyDictionary<int, Type>(_messageResponseTypes);"));
 
             messagesType.Members.Add(new CodeSnippetTypeMember(@"
@@ -368,7 +395,8 @@ public static void ProcessRequest(this Stream stream)
                     };
                     messagesType.Members.Add(messageType);
 
-                    messageType.Members.Add(new CodeSnippetTypeMember(string.Format("public const int {0}Tag = {1};", messageType.Name, GetStableHash(string.Format("{0}.{1}.{2}", ns.Name, messagesType.Name, messageType.Name)))));
+                    messageType.Members.Add(new CodeSnippetTypeMember(string.Format("public const int {0}RequestTag = {1};", messageType.Name, GetStableHash(string.Format("{0}.{1}.{2}.Request", ns.Name, messagesType.Name, messageType.Name)))));
+                    messageType.Members.Add(new CodeSnippetTypeMember(string.Format("public const int {0}ResponseTag = {1};", messageType.Name, GetStableHash(string.Format("{0}.{1}.{2}.Response", ns.Name, messagesType.Name, messageType.Name)))));
                     messageType.Members.Add(new CodeSnippetTypeMember(@"public static event ProcessRequestDelegate<Request, Response> MessageReceived;"));
 
                     messageType.Members.Add(new CodeSnippetTypeMember(string.Format(
@@ -484,7 +512,7 @@ public static void ProcessRequest(this Stream stream)
                                                  }) 
                             }
                         };
-                        messageRequestType.Members.Add(new CodeSnippetTypeMember(string.Format("int IRequest.Tag {{ get {{ return {0}Tag; }} }}", messageType.Name)));
+                        messageRequestType.Members.Add(new CodeSnippetTypeMember(string.Format("int IRequest.Tag {{ get {{ return {0}RequestTag; }} }}", messageType.Name)));
                         messageRequestType.Members.Add(new CodeSnippetTypeMember(string.Format("object IRequest.InvokeReceived() {{ return {0}.MessageReceived(this); }}", messageType.Name)));
                         messageType.Members.Add(messageRequestType);
 
@@ -519,7 +547,7 @@ public static void ProcessRequest(this Stream stream)
                                                  })
                             }
                         };
-                        messageResponseType.Members.Add(new CodeSnippetTypeMember(string.Format("int IResponse.Tag {{ get {{ return {0}Tag; }} }}", messageType.Name)));
+                        messageResponseType.Members.Add(new CodeSnippetTypeMember(string.Format("int IResponse.Tag {{ get {{ return {0}ResponseTag; }} }}", messageType.Name)));
                         messageType.Members.Add(messageResponseType);
 
                         int fieldTag = 1;
