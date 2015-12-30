@@ -79,9 +79,6 @@ exit will shut down the client and server";
                                         Value = v
                                     });
 
-                                // using (var setStringsRequest = new FileStream("SetStrings.Request", FileMode.Create))
-                                //     setStringsRequest.MessagesSetStrings(kvps.ToArray());
-
                                 var response = clientPipe.MessagesSetStrings(kvps.ToArray());
                                 if (response.Result == Messages.Result.Success)
                                     Console.WriteLine("Successfully set values for keys: {0}", string.Join(", ", names));

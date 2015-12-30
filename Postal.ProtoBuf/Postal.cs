@@ -186,20 +186,22 @@ namespace {0}
             proto = RemoveMessageContainer.Replace(proto, "");
             var messagesTypeName = RemoveAllExtensions(Path.GetFileName(sourceFilename));
             var sb = new StringBuilder();
-            sb.AppendFormat("message {0}\n", messagesTypeName);
-            sb.AppendLine("{");
-            sb.AppendLine("   oneof Payload");
-            sb.AppendLine("   {");
+
             foreach (var postalType in parsed.PostalTypes)
             {
                 var message = postalType as MessageParser.MessageDefinition;
                 if (message == null)
                     continue;
-                sb.AppendFormat("      {0}Request {0}Request = {1};\n", message.Name, GetStableHash(string.Format("{0}.{1}.{2}.Request", parsed.Namespace, messagesTypeName, message.Name)));
-                sb.AppendFormat("      {0}Response {0}Response = {1};\n", message.Name, GetStableHash(string.Format("{0}.{1}.{2}.Response", parsed.Namespace, messagesTypeName, message.Name)));
+                sb.AppendFormat("message {0}RequestWrapper\n", message.Name);
+                sb.AppendLine("{");
+                sb.AppendFormat("    optional {0}Request {0}Request = {1};\n", message.Name, GetStableHash(string.Format("{0}.{1}.{2}.Request", parsed.Namespace, messagesTypeName, message.Name)));
+                sb.AppendLine("}");
+                
+                sb.AppendFormat("message {0}ResponseWrapper\n", message.Name);
+                sb.AppendLine("{");
+                sb.AppendFormat("    optional {0}Response {0}Response = {1};\n", message.Name, GetStableHash(string.Format("{0}.{1}.{2}.Response", parsed.Namespace, messagesTypeName, message.Name)));
+                sb.AppendLine("}");
             }
-            sb.AppendLine("   }");
-            sb.AppendLine("}");
 
             return proto + "\n" + sb.ToString();
         }
@@ -241,16 +243,15 @@ namespace {0}
             var ns = new CodeNamespace(parsed.Namespace);
             codeUnit.Namespaces.Add(ns);
 
-            ns.Imports.Add(new CodeNamespaceImport("System"));
-            ns.Imports.Add(new CodeNamespaceImport("System.Collections.Generic"));
-            ns.Imports.Add(new CodeNamespaceImport("System.Collections.ObjectModel"));
-            ns.Imports.Add(new CodeNamespaceImport("System.ComponentModel"));
-            ns.Imports.Add(new CodeNamespaceImport("System.IO"));
-            ns.Imports.Add(new CodeNamespaceImport("System.Linq"));
-            ns.Imports.Add(new CodeNamespaceImport("System.Threading.Tasks"));
+            ns.Imports.Add(new CodeNamespaceImport("global::System"));
+            ns.Imports.Add(new CodeNamespaceImport("global::System.Collections.Generic"));
+            ns.Imports.Add(new CodeNamespaceImport("global::System.Collections.ObjectModel"));
+            ns.Imports.Add(new CodeNamespaceImport("global::System.ComponentModel"));
+            ns.Imports.Add(new CodeNamespaceImport("global::System.IO"));
+            ns.Imports.Add(new CodeNamespaceImport("global::System.Linq"));
+            ns.Imports.Add(new CodeNamespaceImport("global::System.Threading.Tasks"));
             ns.Imports.Add(new CodeNamespaceImport("global::ProtoBuf"));
-
-            ns.Imports.Add(new CodeNamespaceImport("Postal.Core"));
+            ns.Imports.Add(new CodeNamespaceImport("global::Postal.Core"));
 
             var messagesType = new CodeTypeDeclaration(className)
             {
