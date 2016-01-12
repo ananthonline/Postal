@@ -317,7 +317,8 @@ public static void ProcessRequest(this Stream stream)
     var request = (IRequest)value;
     if (request == null)
         return;
-    Serializer.NonGeneric.SerializeWithLengthPrefix(stream, request.InvokeReceived(), PrefixStyle.Base128, request.Tag);
+    var response = (IResponse)request.InvokeReceived();
+    Serializer.NonGeneric.SerializeWithLengthPrefix(stream, response, PrefixStyle.Base128, response.Tag);
 }"));
 
             int dummyFieldsTag = 1;
