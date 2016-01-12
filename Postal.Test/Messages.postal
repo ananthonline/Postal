@@ -10,6 +10,7 @@ enum Result
 }
 
 const string EmptyString = "";
+const string PipeName = "Postal.Test";
 
 struct KeyValuePair
 {
@@ -21,7 +22,7 @@ message SetStrings
 {
 	request
 	{
-		mandatory KeyValuePair[] KeyValuePairs;
+		KeyValuePair[] KeyValuePairs;
 	}
 	response
 	{

@@ -27,7 +27,9 @@ exit will shut down the client and server";
         static void Main(string[] args)
         {
             var exit = false;
-            using (var clientPipe = new NamedPipeClientStream(PipeDetails.Name))
+            int sequence = 0;
+
+            using (var clientPipe = new NamedPipeClientStream(Messages.PipeName))
             {
                 try
                 {
@@ -56,6 +58,9 @@ exit will shut down the client and server";
                     {
                         case Command.get:
                             {
+                                // using (var getStringsRequest = new FileStream("GetStrings.Request", FileMode.Create))
+                                //     getStringsRequest.MessagesGetStrings(names);
+
                                 var response = clientPipe.MessagesGetStrings(names);
                                 if (response.Result == Messages.Result.Success)
                                     Console.WriteLine("Values for keys: {0} are: {1}", string.Join(", ", names), string.Join(", ", response.Values));
@@ -73,6 +78,7 @@ exit will shut down the client and server";
                                         Key = k,
                                         Value = v
                                     });
+
                                 var response = clientPipe.MessagesSetStrings(kvps.ToArray());
                                 if (response.Result == Messages.Result.Success)
                                     Console.WriteLine("Successfully set values for keys: {0}", string.Join(", ", names));
