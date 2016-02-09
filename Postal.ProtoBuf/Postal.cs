@@ -305,7 +305,7 @@ private static T Deserialize<T>(Stream stream) where T : IResponse
     return (T)value;
 }"));
             messagesType.Members.Add(new CodeSnippetTypeMember(@"
-public static void ProcessRequest(this Stream stream)
+public static void ProcessRequest(this Stream stream, Func<Stream, IRequest, bool> postDeserialize = null)
 {
     object value;
     Serializer.NonGeneric.TryDeserializeWithLengthPrefix(stream, PrefixStyle.Base128,
@@ -317,6 +317,9 @@ public static void ProcessRequest(this Stream stream)
     var request = (IRequest)value;
     if (request == null)
         return;
+    if (postDeserialize != null)
+        if (!postDeserialize(stream, request))
+            return;
     var response = (IResponse)request.InvokeReceived();
     Serializer.NonGeneric.SerializeWithLengthPrefix(stream, response, PrefixStyle.Base128, response.Tag);
 }"));

@@ -33,7 +33,11 @@ namespace Postal.Test.Server
                             Console.WriteLine("Client connected. Waiting for commands.");
                         }
 
-                        _serverPipe.ProcessRequest();
+                        _serverPipe.ProcessRequest((stream, request) => 
+                        {
+                            Console.WriteLine("Request deserialized!");
+                            return true;
+                        });
                     }
                     catch (IOException)
                     {
